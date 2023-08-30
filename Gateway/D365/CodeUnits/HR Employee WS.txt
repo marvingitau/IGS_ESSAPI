@@ -1,0 +1,186 @@
+Documentation()
+{
+  Experiment with
+    * employee serializer that take in a record and returns a sring json object.
+    * employee deserializer that take in a string and returns an uncommited employee record.
+}
+
+OnRun()
+
+[External] GetEmployeesRange(StartIndex : Integer;SelectRange : Integer;EmployeeStatus : Text) Result : Text
+EmployeeTbl.RESET;
+CASE TRUE OF
+  LOWERCASE(EmployeeStatus) = 'active':
+    EmployeeTbl.SETRANGE(Status, EmployeeTbl.Status::Active);
+  LOWERCASE(EmployeeStatus) = 'inactive':
+    EmployeeTbl.SETRANGE(Status, EmployeeTbl.Status::Inactive);
+  LOWERCASE(EmployeeStatus) = 'terminated':
+    EmployeeTbl.SETRANGE(Status, EmployeeTbl.Status::Terminated);
+  LOWERCASE(EmployeeStatus) = 'approver':
+    EmployeeTbl.SETRANGE(Status, EmployeeTbl.Status::Approver);
+  ELSE
+    EmployeeTbl.RESET;
+  END;
+
+// Return every thing in the table (no pagination).
+Result := '[';
+IF EmployeeTbl.FINDSET THEN BEGIN
+  REPEAT
+    Result += EmployeeSerializer(EmployeeTbl);    
+    IF EmployeeTbl.NEXT <> 0 THEN 
+      Result += ',';
+   UNTIL EmployeeTbl.NEXT = 0;
+
+END ELSE BEGIN
+  Result += EmptyEmployee() 
+  END;
+Result += ']';
+
+[External] GetEmployee(EmployeeID : Text;EmployeeStatus : Text) Result : Text
+EmployeeTbl.RESET;
+CASE TRUE OF
+  LOWERCASE(EmployeeStatus) = 'active':
+    EmployeeTbl.SETRANGE(Status, EmployeeTbl.Status::Active);
+  LOWERCASE(EmployeeStatus) = 'inactive':
+    EmployeeTbl.SETRANGE(Status, EmployeeTbl.Status::Inactive);
+  LOWERCASE(EmployeeStatus) = 'terminated':
+    EmployeeTbl.SETRANGE(Status, EmployeeTbl.Status::Terminated);
+  LOWERCASE(EmployeeStatus) = 'approver':
+    EmployeeTbl.SETRANGE(Status, EmployeeTbl.Status::Approver);
+  ELSE
+    EmployeeTbl.RESET;
+  END;
+
+EmployeeTbl.SETFILTER("No.", EmployeeID);
+IF EmployeeTbl.FINDFIRST THEN BEGIN
+    MESSAGE('%1 is %2', EmployeeID, EmployeeTbl."Full Name");
+    Result := EmployeeSerializer(EmployeeTbl);
+  END
+  ELSE BEGIN
+    Result := EmptyEmployee();
+  END;
+
+[External] CreateEmployee(FirstName : Text;MiddleName : Text;LastName : Text;Gender : Text;JobTitle : Text;ManagerNo : Text;Email : Text;PhoneNo : Text) Result : Text
+EmployeeTbl.INIT();
+
+EmployeeTbl."First Name" := FirstName;
+EmployeeTbl."Middle Name" := MiddleName;
+EmployeeTbl."Last Name" := LastName;
+CASE TRUE OF
+  LOWERCASE(Gender)= 'female':
+    EmployeeTbl.Gender := EmployeeTbl.Gender::Female;
+  LOWERCASE(Gender)= 'male':
+    EmployeeTbl.Gender := EmployeeTbl.Gender::Male;
+END;
+EmployeeTbl."Job Title" := JobTitle;
+
+IF ManagerNo <> '' THEN BEGIN
+  ManagerTbl.SETFILTER("No.", ManagerNo);
+  IF ManagerTbl.FINDFIRST THEN
+    EmployeeTbl."Manager No." := ManagerTbl."No.";
+END;
+
+EmployeeTbl.Status := EmployeeTbl.Status::Active;
+
+EmployeeTbl."E-Mail" := Email;
+EmployeeTbl."Phone No." := PhoneNo;
+
+EmployeeTbl.INSERT;
+MESSAGE(EmployeeTbl."No.");
+Result := EmployeeSerializer(EmployeeTbl);
+
+[External] UpdateEmployee(EmployeeID : Text;FirstName : Text;MiddleName : Text;LastName : Text;Gender : Text;JobTitle : Text;ManagerNo : Text;EMail : Text;PhoneNo : Text) Result : Text
+EmployeeTbl.INIT;
+EmployeeTbl.SETFILTER("No.", EmployeeID);
+IF EmployeeTbl.FINDFIRST THEN BEGIN
+  EmployeeTbl."First Name" := FirstName;
+  EmployeeTbl."Middle Name" := MiddleName;
+  EmployeeTbl."Last Name" := LastName;
+  CASE TRUE OF
+    LOWERCASE(Gender)= 'female':
+      EmployeeTbl.Gender := EmployeeTbl.Gender::Female;
+    LOWERCASE(Gender)= 'male':
+      EmployeeTbl.Gender := EmployeeTbl.Gender::Male;
+  END;
+  EmployeeTbl."Job Title" := JobTitle;
+
+  IF ManagerNo <> '' THEN BEGIN
+    ManagerTbl.SETFILTER("No.", ManagerNo);
+    IF ManagerTbl.FINDFIRST THEN
+      EmployeeTbl."Manager No." := ManagerTbl."No.";
+  END;
+
+  EmployeeTbl.Status := EmployeeTbl.Status::Active;
+
+  EmployeeTbl."E-Mail" := EMail;
+  EmployeeTbl."Phone No." := PhoneNo;
+
+  EmployeeTbl.MODIFY;
+  END;
+Result := EmployeeSerializer(EmployeeTbl);
+
+[External] DeleteEmployee(EmployeeID : Text) Result : Text
+EmployeeTbl.RESET();
+EmployeeTbl.SETFILTER("No.", EmployeeID);
+IF EmployeeTbl.FINDFIRST THEN
+  EmployeeTbl.DELETE();
+
+Result := '{"message":"Deletion successfull"}';
+
+LOCAL EmployeeSerializer(EmployeeRec : Record Employee) Result : Text
+Result := '{';
+Result+='"No":"'+FORMAT(EmployeeRec."No.")+'",';
+Result+='"FullName":"'+FORMAT(EmployeeRec."Full Name")+'",';
+Result+='"Gender":"'+FORMAT(EmployeeRec.Gender)+'",';
+Result+='"Title":"'+FORMAT(EmployeeRec.Title)+'",';
+Result+='"MaritalStatus":"'+FORMAT(EmployeeRec."Marital Status")+'",';
+Result+='"NationalID":"'+FORMAT(EmployeeRec."National ID")+'",';
+Result+='"NSSFNo":"'+FORMAT(EmployeeRec."NSSF No.")+'",';
+Result+='"NHIFNo":"'+FORMAT(EmployeeRec."NHIF No.")+'",';
+Result+='"PIN":"'+FORMAT(EmployeeRec.PIN)+'",';
+Result+='"Address":"'+FORMAT(EmployeeRec.Address)+'",';
+Result+='"City":"'+FORMAT(EmployeeRec.City)+'",';
+Result+='"CountryRegionCode":"'+FORMAT(EmployeeRec."Country/Region Code")+'",';
+Result+='"MobilePhoneNo":"'+FORMAT(EmployeeRec."Mobile Phone No.")+'",';
+Result+='"CompanyEMail":"'+FORMAT(EmployeeRec."Company E-Mail")+'",';
+Result+='"EMail":"'+FORMAT(EmployeeRec."E-Mail")+'",';
+Result+='"JobNo":"'+FORMAT(EmployeeRec."Job No.-d")+'",';
+Result+='"JobTitle":"'+FORMAT(EmployeeRec."Job Title")+'",';
+Result+='"Age":"'+FORMAT(EmployeeRec.Age)+'",';
+Result+='"ProbationExpiryDate":"'+FORMAT(EmployeeRec."Probation Expiry Date")+'",';
+Result+='"ContractExpiryDate":"'+FORMAT(EmployeeRec."Contract End Date")+'",';
+Result+='"Service":"'+FORMAT(EmployeeRec.Service)+'",';
+Result+='"Religion":"'+FORMAT(EmployeeRec.Religion)+'",';
+Result+='"Status":"'+FORMAT(EmployeeRec.Status)+'",';
+Result+='"PhoneNo":"'+FORMAT(EmployeeRec."Phone No.")+'",';
+Result+='}';
+
+LOCAL EmptyEmployee() Result : Text
+// EmployeeTbl.INIT;
+// Result := EmployeeSerializer(EmployeeTbl);
+Result := '{';
+Result+='"No":"",';
+Result+='"FullName":"",';
+Result+='"Gender":"",';
+Result+='"Title":"",';
+Result+='"MaritalStatus":"",';
+Result+='"NationalID":"",';
+Result+='"NSSFNo":"",';
+Result+='"NHIFNo":"",';
+Result+='"PIN":"",';
+Result+='"Address":"",';
+Result+='"City":"",';
+Result+='"CountryRegionCode":"",';
+Result+='"MobilePhoneNo":"",';
+Result+='"CompanyEMail":"",';
+Result+='"EMail":"",';
+Result+='"JobNo":"",';
+Result+='"JobTitle":"",';
+Result+='"Age":"",';
+Result+='"ProbationExpiryDate":"",';
+Result+='"ContractExpiryDate":"",';
+Result+='"Service":"",';
+Result+='"Religion":"",';
+Result+='"Status":"",';
+Result+='"PhoneNo":"",';
+Result+='}';

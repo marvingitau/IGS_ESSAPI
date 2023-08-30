@@ -1,0 +1,12 @@
+.git
+.vs
+GetWay/.config
+GetWay/Auth
+GetWay/bin
+GetWay/ConnectedServices
+GetWay/Logs
+GetWay/Migrations
+GetWay/Properties
+GetWay/WeatherForecast.cs
+GetWay/GetWay.csproj.user
+GetWay/GetWay.csproj
