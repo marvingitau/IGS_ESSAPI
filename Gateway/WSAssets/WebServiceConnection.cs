@@ -1,6 +1,7 @@
 ﻿using EmployeeAccountWS;
 using HREmployeeWS;
 using IncidentsWS;
+using LeaveManagementWS;
 using Microsoft.Extensions.Options;
 using System.ServiceModel;
 
@@ -66,6 +67,18 @@ namespace Gateway.WSAssets
             return EmployeeWebService;
         }
 
+
+        public HRLeaveManagementWS_PortClient HRLeaveManagementWS()
+        {
+            HRLeaveManagementWS_PortClient leaveManagementWS = new HRLeaveManagementWS_PortClient(
+                HRLeaveManagementWS_PortClient
+                .EndpointConfiguration
+                .HRLeaveManagementWS_Port);
+            var url = GetSeviceURL("HRLeaveManagementWS");
+            
+            leaveManagementWS.Endpoint.Address = new EndpointAddress(url);
+            return leaveManagementWS;
+        }
 
 
 
