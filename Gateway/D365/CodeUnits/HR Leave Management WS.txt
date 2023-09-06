@@ -1,0 +1,838 @@
+Documentation()
+{
+  CRUD - Leave Type 
+  CRUD - Leave Period
+  CRUD - Leave Application
+  CRUD - Leave Allocation 
+
+  EXPERIMENT:
+    Cusomizable Serializer - Specify the fields that are required in the serialized Record 
+    Combination of while and SetRange to select range of items in the Get...Range Endpoints.
+}
+
+OnRun()
+
+
+// -----------------------------  LEAVE TYPES  ---------------------------------------
+
+[External] CreateLeaveType(Description : Text;Gender : Text;Days : Decimal;AnnualLeave : Boolean;InclusiveOfNonWorkingDays : Boolean;Balance : Text;MaxCarryForwardDays : Decimal;AmountPerDay : Decimal;LeavePlanMandatory : Boolean;AllowNegativeDays : B
+LeaveTypeTbl.INIT;
+LeaveTypeTbl.VALIDATE(Code, LeaveTypeTbl.Code);
+
+LeaveTypeTbl.Description := Description;
+
+CASE TRUE OF 
+  LOWERCASE(Gender) = 'both':
+    LeaveTypeTbl.Gender := LeaveTypeTbl.Gender::Both;
+  LOWERCASE(Gender) = 'male':
+    LeaveTypeTbl.Gender := LeaveTypeTbl.Gender::Male;
+  LOWERCASE(Gender) = 'felmale':
+    LeaveTypeTbl.Gender := LeaveTypeTbl.Gender::Female;
+    END;
+
+LeaveTypeTbl.Days := Days;
+LeaveTypeTbl."Annual Leave" := AnnualLeave;
+LeaveTypeTbl."Inclusive of Non Working Days" := InclusiveOfNonWorkingDays;
+
+CASE TRUE OF 
+  LOWERCASE(Balance) = 'carry forward':
+    LeaveTypeTbl.Balance := LeaveTypeTbl.Balance::"Carry Forward";
+  LOWERCASE(Balance) = 'convert to cash':
+    LeaveTypeTbl.Balance := LeaveTypeTbl.Balance::"Convert to Cash";
+  LOWERCASE(Balance) = 'ignore':
+    LeaveTypeTbl.Balance := LeaveTypeTbl.Balance::Ignore;
+  END;
+LeaveTypeTbl."Max Carry Forward Days" := MaxCarryForwardDays;
+LeaveTypeTbl."Amount Per Day" := AmountPerDay;
+LeaveTypeTbl."Leave Plan Mandatory" := LeavePlanMandatory;
+LeaveTypeTbl."Allow Negative Days" := AllowNegativeDays;
+LeaveTypeTbl."Attach Leave Application Doc." := AttachLeaveApplicationDoc;
+LeaveTypeTbl."Max Days to be Taken" := MaxDaysToBeTaken;
+
+LeaveTypeTbl."Show in Portal" := LeaveTypeTbl."Show in Portal"::Yes;
+
+LeaveTypeTbl.INSERT(TRUE);
+
+Result := LeaveTypeSerializer(LeaveTypeTbl)
+
+[External] GetLeaveType(LeaveTypeID : Code[20]) Result : Text
+LeaveTypeTbl.RESET();
+LeaveTypeTbl.SETFILTER(Code, LeaveTypeID);
+IF LeaveTypeTbl.FINDFIRST THEN
+  Result := LeaveTypeSerializer(LeaveTypeTbl)
+ELSE
+  Result := EmptyLeaveType();
+
+[External] GetLeaveTypesRange() Result : Text
+
+LeaveTypeTbl.RESET();
+Result := '[';
+REPEAT
+  Result += LeaveTypeSerializer(LeaveTypeTbl);
+  IF LeaveTypeTbl.NEXT <> 0 THEN
+    Result += ',';
+  UNTIL LeaveTypeTbl.NEXT = 0;
+
+Result += ']';
+
+[External] UpdateLeaveType(LeaveTypeID : Code[20];Description : Text;Gender : Text;Days : Decimal;AnnualLeave : Boolean;InclusiveOfNonWorkingDays : Boolean;Balance : Text;MaxCarryForwardDays : Decimal;AmountPerDay : Decimal;LeavePlanMandatory : Booleans
+LeaveTypeTbl.RESET();
+LeaveTypeTbl.SETFILTER(Code, LeaveTypeID);
+IF LeaveTypeTbl.FINDFIRST THEN BEGIN
+
+  LeaveTypeTbl.Description := Description;
+
+  CASE TRUE OF 
+    LOWERCASE(Gender) = 'both':
+      LeaveTypeTbl.Gender := LeaveTypeTbl.Gender::Both;
+    LOWERCASE(Gender) = 'male':
+      LeaveTypeTbl.Gender := LeaveTypeTbl.Gender::Male;
+    LOWERCASE(Gender) = 'felmale':
+      LeaveTypeTbl.Gender := LeaveTypeTbl.Gender::Female;
+      END;
+
+  LeaveTypeTbl.Days := Days;
+  LeaveTypeTbl."Annual Leave" := AnnualLeave;
+  LeaveTypeTbl."Inclusive of Non Working Days" := InclusiveOfNonWorkingDays;
+
+  CASE TRUE OF 
+    LOWERCASE(Balance) = 'carry forward':
+      LeaveTypeTbl.Balance := LeaveTypeTbl.Balance::"Carry Forward";
+    LOWERCASE(Balance) = 'convert to cash':
+      LeaveTypeTbl.Balance := LeaveTypeTbl.Balance::"Convert to Cash";
+    LOWERCASE(Balance) = 'ignore':
+      LeaveTypeTbl.Balance := LeaveTypeTbl.Balance::Ignore;
+    END;
+  LeaveTypeTbl."Max Carry Forward Days" := MaxCarryForwardDays;
+  LeaveTypeTbl."Amount Per Day" := AmountPerDay;
+  LeaveTypeTbl."Leave Plan Mandatory" := LeavePlanMandatory;
+  LeaveTypeTbl."Allow Negative Days" := AllowNegativeDays;
+  LeaveTypeTbl."Attach Leave Application Doc." := AttachLeaveApplicationDoc;
+  LeaveTypeTbl."Max Days to be Taken" := MaxDaystobeTaken;
+
+
+  LeaveTypeTbl.MODIFY;
+
+  Result := LeaveTypeSerializer(LeaveTypeTbl);
+END ELSE
+  Result := EmptyLeaveType();
+
+[External] DeleteLeaveType(LeaveTypeID : Code[20]) Result : Text
+LeaveTypeTbl.RESET();
+LeaveTypeTbl.SETFILTER(Code, LeaveTypeID);
+IF LeaveTypeTbl.FINDFIRST THEN BEGIN
+  LeaveTypeTbl.DELETE;
+  Result := '{"Message": "Deletion successfull"}';
+
+END ELSE
+  Result := EmptyLeaveType();
+
+LOCAL EmptyLeaveType() Result : Text
+LeaveTypeTbl.INIT;
+LeaveTypeTbl.Code := 'N/A';
+Result := LeaveTypeSerializer(LeaveTypeTbl)
+
+LOCAL LeaveTypeSerializer(LeaveTypeRec : Record "HR Leave Types") Result : Text
+// Use variant type for rec - Error arises.
+Result := '{';
+
+  Result += '"Code": "'+FORMAT(LeaveTypeRec.Code)+'",';
+  Result += '"Description": "'+FORMAT(LeaveTypeRec.Description)+'",';
+  Result += '"Gender": "'+FORMAT(LeaveTypeRec.Gender)+'",';
+  Result += '"Days": "'+FORMAT(LeaveTypeRec.Days)+'",';
+  Result += '"AnnualLeave": "'+JsonBoolean(LeaveTypeRec."Annual Leave")+'",';
+  Result += '"InclusiveOfNonWorkingDays": "'+JsonBoolean(LeaveTypeRec."Inclusive of Non Working Days")+'",';
+  Result += '"Balance": "'+FORMAT(LeaveTypeRec.Balance)+'",';
+  Result += '"MaxCarryForwardDays": "'+FORMAT(LeaveTypeRec."Max Carry Forward Days")+'",';
+  Result += '"AmountPerDay": "'+FORMAT(LeaveTypeRec."Amount Per Day")+'",';
+  Result += '"LeavePlanMandatory": "'+JsonBoolean(LeaveTypeRec."Leave Plan Mandatory")+'",';
+  Result += '"AllowNegativeDays": "'+JsonBoolean(LeaveTypeRec."Allow Negative Days")+'",';
+  Result += '"AttachLeaveApplicationDoc": "'+JsonBoolean(LeaveTypeRec."Attach Leave Application Doc.")+'",';
+  Result += '"MaxDaysToBeTaken": "'+FORMAT(LeaveTypeRec."Max Days to be Taken")+'"';
+
+Result += '}';
+
+LOCAL JsonBoolean(BoolVar : Boolean) Result : Text
+IF BoolVar THEN 
+  Result := 'true'
+ELSE
+  Result := 'false';
+
+LOCAL ---------------------------------------------- Leave Period ----------------------------------------------()
+
+[External] CreateLeavePeriod(Name : Text;StartDate : Text;EndDate : Text;Closed : Boolean;LeaveYear : Integer;EnableLeavePlanning : Boolean;LeavePlanningEndDate : Text;EnableLeaveApplication : Boolean;EnableLeaveCarryover : Boolean;LeaveCarryoverEndDa
+LeavePeriodTbl.INIT;
+LeavePeriodTbl.VALIDATE(Code,LeavePeriodTbl.Code);
+
+LeavePeriodTbl.Name := Name;
+
+IF StartDate <> '' THEN
+  EVALUATE(LeavePeriodTbl."Start Date", StartDate);
+
+IF EndDate <> '' THEN
+  EVALUATE(LeavePeriodTbl."End Date", EndDate);
+
+LeavePeriodTbl.Closed := Closed;
+LeavePeriodTbl."Leave Year" := LeaveYear;
+LeavePeriodTbl."Enable Leave Planning" := EnableLeavePlanning;
+
+IF LeavePlanningEndDate <> '' THEN
+  EVALUATE(LeavePeriodTbl."Leave Planning End Date", LeavePlanningEndDate);
+
+LeavePeriodTbl."Enable Leave Application" := EnableLeaveApplication;
+LeavePeriodTbl."Enable Leave Carryover" := EnableLeaveCarryover;
+
+IF LeaveCarryoverEndDate<> '' THEN
+  EVALUATE(LeavePeriodTbl."Leave Carryover End Date", LeaveCarryoverEndDate);
+
+
+LeavePeriodTbl."Enable Leave Reimbursement" := EnableLeaveReimbursement;
+
+IF LeaveReimbursementEndDate <> '' THEN
+  EVALUATE(LeavePeriodTbl."Leave Reimbursement End Date", LeaveReimbursementEndDate);
+
+
+LeavePeriodTbl.INSERT(TRUE);
+Result := LeavePeriodSerializer(LeavePeriodTbl);
+
+[External] GetLeavePeriodsRange() Result : Text
+LeavePeriodTbl.RESET;
+Result := '[';
+REPEAT
+  Result += LeavePeriodSerializer(LeavePeriodTbl);
+  
+  IF LeavePeriodTbl.NEXT <> 0 THEN
+    Result += ',';
+
+  UNTIL LeavePeriodTbl.NEXT = 0;
+Result += ']';
+
+[External] GetLeavePeriod(LeavePeriodID : Code[20]) Result : Text
+LeavePeriodTbl.RESET;
+LeavePeriodTbl.SETFILTER(Code, LeavePeriodID);
+IF LeavePeriodTbl.FINDFIRST THEN
+    Result := LeavePeriodSerializer(LeavePeriodTbl)
+ELSE
+  Result := EmptyLeavePeriod();
+
+[External] UpdateLeavePeriod(LeavePeriodID : Code[20];Name : Text;StartDate : Text;EndDate : Text;Closed : Boolean;LeaveYear : Integer;EnableLeavePlanning : Boolean;LeavePlanningEndDate : Text;EnableLeaveApplication : Boolean;EnableLeaveCarryover : Bo
+LeavePeriodTbl.RESET;
+
+LeavePeriodTbl.SETFILTER(Code, LeavePeriodID);
+IF LeavePeriodTbl.FINDFIRST THEN BEGIN 
+  LeavePeriodTbl.Name := Name;
+
+  IF StartDate <> '' THEN
+    EVALUATE(LeavePeriodTbl."Start Date", StartDate);
+
+  IF EndDate <> '' THEN
+    EVALUATE(LeavePeriodTbl."End Date", EndDate);
+
+  LeavePeriodTbl.Closed := Closed;
+  LeavePeriodTbl."Leave Year" := LeaveYear;
+  LeavePeriodTbl."Enable Leave Planning" := EnableLeavePlanning;
+
+  IF LeavePlanningEndDate <> '' THEN
+    EVALUATE(LeavePeriodTbl."Leave Planning End Date", LeavePlanningEndDate);
+
+  LeavePeriodTbl."Enable Leave Application" := EnableLeaveApplication;
+  LeavePeriodTbl."Enable Leave Carryover" := EnableLeaveCarryover;
+
+  IF LeaveCarryoverEndDate<> '' THEN
+    EVALUATE(LeavePeriodTbl."Leave Carryover End Date", LeaveCarryoverEndDate);
+
+  LeavePeriodTbl."Enable Leave Reimbursement" := EnableLeaveReimbursement;
+
+  IF LeaveReimbursementEndDate <> '' THEN
+    EVALUATE(LeavePeriodTbl."Leave Reimbursement End Date", LeaveReimbursementEndDate);
+
+  LeavePeriodTbl.MODIFY;
+END;
+Result := LeavePeriodSerializer(LeavePeriodTbl);
+
+[External] DeleteLeavePeriod(LeavePeriodID : Code[20]) Result : Text
+LeavePeriodTbl.RESET;
+LeavePeriodTbl.SETFILTER(Code, LeavePeriodID);
+IF LeavePeriodTbl.FINDFIRST THEN BEGIN
+    LeavePeriodTbl.DELETE();
+    Result := '{"message":"Deletion Successfull"}';
+END ELSE
+  Result := EmptyLeavePeriod();
+
+LOCAL LeavePeriodSerializer(LeaveTypeRec : Record "HR Leave Periods") Result : Text
+Result := '{';
+
+Result += '"Code":"'+FORMAT(LeaveTypeRec.Code)+'",';
+Result += '"Name":"'+FORMAT(LeaveTypeRec.Name)+'",';
+Result += '"StartDate":"'+FORMAT(LeaveTypeRec."Start Date")+'",';
+Result += '"EndDate":"'+FORMAT(LeaveTypeRec."End Date")+'",';
+Result += '"Closed":"'+JsonBoolean(LeaveTypeRec.Closed)+'",';
+Result += '"LeaveYear":"'+FORMAT(LeaveTypeRec."Leave Year")+'",';
+Result += '"EnableLeavePlanning":"'+JsonBoolean(LeaveTypeRec."Enable Leave Planning")+'",';
+Result += '"LeavePlanningEndDate":"'+FORMAT(LeaveTypeRec."Leave Planning End Date")+'",';
+Result += '"EnableLeaveApplication":"'+JsonBoolean(LeaveTypeRec."Enable Leave Application")+'",';
+Result += '"EnableLeaveCarryover":"'+JsonBoolean(LeaveTypeRec."Enable Leave Carryover")+'",';
+Result += '"LeaveCarryoverEndDate":"'+FORMAT(LeaveTypeRec."Leave Carryover End Date")+'",';
+Result += '"EnableLeaveReimbursement":"'+JsonBoolean(LeaveTypeRec."Enable Leave Reimbursement")+'",';
+Result += '"LeaveReimbursementEndDate":"'+FORMAT(LeaveTypeRec."Leave Reimbursement End Date")+'"';
+
+Result += '}';
+
+LOCAL EmptyLeavePeriod() Result : Text
+LeavePeriodTbl.INIT;
+LeavePeriodTbl.Code := 'N/A';
+Result := LeavePeriodSerializer(LeavePeriodTbl);
+
+LOCAL ---------------------------------------------- Leave Allociation Header ----------------------------------------------()
+
+[External] CreateLeaveAllocationHeader(PostingDate : Text;LeaveType : Code[20];LeavePeriod : Code[20];Description : Text;Status : Text) Result : Text
+
+LeaveAllocationHeaderTbl.INIT;
+
+LeaveAllocationHeaderTbl.VALIDATE("No.", LeaveAllocationHeaderTbl."No.");
+
+IF PostingDate <> '' THEN
+   EVALUATE(LeaveAllocationHeaderTbl."Posting Date", PostingDate);
+
+LeaveTypeTbl.RESET;
+LeaveTypeTbl.SETFILTER(Code, LeaveType);
+IF LeaveTypeTbl.FINDFIRST THEN
+  LeaveAllocationHeaderTbl."Leave Type" := LeaveType;
+
+LeavePeriodTbl.RESET;
+LeavePeriodTbl.SETFILTER(Code, LeavePeriod);
+LeavePeriodTbl.SETFILTER(Closed, 'No');
+IF LeavePeriodTbl.FINDFIRST THEN
+  LeaveAllocationHeaderTbl."Leave Period" := LeavePeriod;
+
+LeaveAllocationHeaderTbl.Description := Description;
+
+CASE TRUE OF 
+  LOWERCASE(Status) = 'open':
+    LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::Open;
+  
+  // Creates a posted Leave Application
+  {
+  LOWERCASE(Status) = 'pending approval':
+    LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::"Pending Approval";
+
+  LOWERCASE(Status) = 'posted':
+    LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::Posted;
+  LOWERCASE(Status) = 'rejected':
+    LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::Rejected;
+  LOWERCASE(Status) = 'released':
+    LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::Released;
+  }
+ 
+ END;
+
+LeaveAllocationHeaderTbl.INSERT(TRUE);
+Result := LeaveAllocationHeaderSerializer(LeaveAllocationHeaderTbl);
+
+[External] GetLeaveAllocationHeadersRange() Result : Text
+LeaveAllocationHeaderTbl.RESET;
+
+Result := '[';
+
+REPEAT 
+  Result += LeaveAllocationHeaderSerializer(LeaveAllocationHeaderTbl);
+  IF LeaveAllocationHeaderTbl.NEXT <> 0 THEN 
+    Result += ',';
+
+  UNTIL LeaveAllocationHeaderTbl.NEXT = 0;
+
+Result += ']';
+
+[External] GetLeaveAllocationHeader(LeaveAllocationHeaderID : Code[20]) Result : Text
+LeaveAllocationHeaderTbl.RESET;
+LeaveAllocationHeaderTbl.SETFILTER("No.", LeaveAllocationHeaderID);
+
+IF LeaveAllocationHeaderTbl.FINDFIRST THEN
+   Result := LeaveAllocationHeaderSerializer(LeaveAllocationHeaderTbl)
+ELSE  
+  Result :=  EmptyLeaveAllocationHeader();
+
+[External] UpdateLeaveAllocationHeader(LeaveAllocationHeaderID : Code[20];PostingDate : Text;LeaveType : Code[20];LeavePeriod : Code[20];Description : Text;Status : Text) Result : Text
+
+
+LeaveAllocationHeaderTbl.RESET;
+LeaveAllocationHeaderTbl.SETFILTER("No.", LeaveAllocationHeaderID);
+IF LeaveAllocationHeaderTbl.FINDFIRST THEN BEGIN
+
+  IF PostingDate <> '' THEN
+     EVALUATE(LeaveAllocationHeaderTbl."Posting Date", PostingDate);
+
+  LeaveTypeTbl.RESET;
+  LeaveTypeTbl.SETFILTER(Code, LeaveType);
+  IF LeaveTypeTbl.FINDFIRST THEN
+    LeaveAllocationHeaderTbl."Leave Type" := LeaveType;
+
+  LeavePeriodTbl.RESET;
+  LeavePeriodTbl.SETFILTER(Code, LeavePeriod);
+  LeavePeriodTbl.SETFILTER(Closed, 'No');
+  IF LeavePeriodTbl.FINDFIRST THEN
+    LeaveAllocationHeaderTbl."Leave Period" := LeavePeriod;
+
+  LeaveAllocationHeaderTbl.Description := Description;
+
+  CASE TRUE OF 
+    LOWERCASE(Status) = 'open':
+      LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::Open;
+  
+    LOWERCASE(Status) = 'pending approval':
+      LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::"Pending Approval";
+    // Creates a posted Leave Application
+    LOWERCASE(Status) = 'posted':
+      LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::Posted;
+    LOWERCASE(Status) = 'rejected':
+      LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::Rejected;
+    LOWERCASE(Status) = 'released':
+      LeaveAllocationHeaderTbl.Status := LeaveAllocationHeaderTbl.Status::Released;
+  
+ 
+   END;
+  Result := LeaveAllocationHeaderSerializer(LeaveAllocationHeaderTbl);
+  LeaveAllocationHeaderTbl.MODIFY;
+
+  END;
+
+[External] DeleteLeaveAllocationHeader(LeaveAllocationHeaderID : Code[20]) Result : Text
+LeaveAllocationHeaderTbl.RESET;
+LeaveAllocationHeaderTbl.SETFILTER("No.", LeaveAllocationHeaderID);
+
+IF LeaveAllocationHeaderTbl.FINDFIRST THEN BEGIN
+   LeaveAllocationHeaderTbl.DELETE;
+   Result := '{"message":"Deletion Succeessfull"}';
+END ELSE  
+  Result :=  EmptyLeaveAllocationHeader();
+
+LOCAL LeaveAllocationHeaderSerializer(LeaveAllocationHeaderRec : Record "HR Leave Allocation Header") Result : Text
+
+Result := '{';
+Result += '"No":"'+FORMAT(LeaveAllocationHeaderRec."No.")+'",';
+Result += '"PostingDate":"'+FORMAT(LeaveAllocationHeaderRec."Posting Date")+'",';
+Result += '"LeaveType":"'+FORMAT(LeaveAllocationHeaderRec."Leave Type")+'",';
+Result += '"LeavePeriod":"'+FORMAT(LeaveAllocationHeaderRec."Leave Period")+'",';
+Result += '"Description":"'+FORMAT(LeaveAllocationHeaderRec.Description)+'",';
+Result += '"Status":"'+FORMAT(LeaveAllocationHeaderRec.Status)+'"';
+Result += '}';
+
+LOCAL EmptyLeaveAllocationHeader() Result : Text
+LeaveAllocationHeaderTbl.INIT;
+LeaveAllocationHeaderTbl."No." := 'N/A';
+
+Result := LeaveAllocationHeaderSerializer(LeaveAllocationHeaderTbl);
+
+LOCAL ---------------------------------------------- Leave Allociation line ----------------------------------------------()
+
+[External] CreateLeaveAllocationLine(LeaveAllocationHeaderNo : Code[20];EmployeeNo : Code[20];EntryType : Text;Description : Text) Result : Text
+LeaveAllocationLineTbl.INIT;
+LeaveAllocationLineTbl."Leave Allocation No." := LeaveAllocationHeaderNo;
+
+LeaveAllocationHeaderTbl.RESET;
+LeaveAllocationHeaderTbl.SETFILTER("No.", LeaveAllocationHeaderNo);
+IF LeaveAllocationHeaderTbl.FINDFIRST THEN BEGIN
+  //LeaveAllocationLineTbl."Leave Allocation No." := LeaveAllocationHeaderTbl."No.";
+
+  // Review - entry by user or auto filled on creation?
+  LeaveTypeTbl.RESET;
+  LeaveTypeTbl.SETFILTER(Code, LeaveAllocationHeaderTbl."Leave Type");
+  IF LeaveTypeTbl.FINDFIRST THEN BEGIN
+      LeaveAllocationLineTbl."Days Allocated" := LeaveTypeTbl.Days;
+      LeaveAllocationLineTbl."Days Approved" := LeaveTypeTbl.Days;
+    END;
+
+  END;
+
+EmployeeTbl.RESET;
+EmployeeTbl.SETFILTER("No.", EmployeeNo);
+IF EmployeeTbl.FINDFIRST THEN BEGIN
+    LeaveAllocationLineTbl."Employee No." := EmployeeNo;
+    LeaveAllocationLineTbl."Employee Name" := EmployeeTbl."Full Name";
+    END;
+
+CASE TRUE OF 
+    LOWERCASE(EntryType) = 'positive adjustment':
+        LeaveAllocationLineTbl."Entry Type" := LeaveAllocationLineTbl."Entry Type"::"Positive Adjustment";
+    
+    LOWERCASE(EntryType) = 'negative adjustment':
+        LeaveAllocationLineTbl."Entry Type" := LeaveAllocationLineTbl."Entry Type"::"Negative Adjustment";
+    
+    LOWERCASE(EntryType) = 'reimbursement':
+        LeaveAllocationLineTbl."Entry Type" := LeaveAllocationLineTbl."Entry Type"::Reimbursement;
+    
+    LOWERCASE(EntryType) = 'carry forward':
+        LeaveAllocationLineTbl."Entry Type" := LeaveAllocationLineTbl."Entry Type"::"Carry forward";
+    END;
+
+LeaveAllocationLineTbl.Description := Description;
+LeaveAllocationLineTbl.Status := LeaveAllocationLineTbl.Status::Open;
+
+LeaveAllocationLineTbl.INSERT(TRUE);
+Result := LeaveAllocationLineSerializer(LeaveAllocationLineTbl);
+
+[External] GetLeaveAllocationLine(LeaveAllocationHeaderNo : Code[20];EmployeeNo : Code[20]) Result : Text
+
+LeaveAllocationLineTbl.RESET;
+LeaveAllocationLineTbl.SETFILTER("Employee No.", EmployeeNo);
+LeaveAllocationLineTbl.SETFILTER("Leave Allocation No.", LeaveAllocationHeaderNo);
+
+IF LeaveAllocationLineTbl.FINDFIRST THEN
+   Result := LeaveAllocationLineSerializer(LeaveAllocationLineTbl)
+ELSE  
+  Result :=  EmptyLeaveAllocationLine();
+
+[External] GetLeaveAllocationLineByHeader(LeaveAllocationHeaderNo : Code[20]) Result : Text
+// Get the leave type and period from header
+  // 1. Get header
+  // 2. Get Period
+  // 3. Get Leave type 
+// Get the employees with the header's leave type.
+// Create Leave Allocation Lines with the:
+  // 1. Leave Header - From the ID parm.
+  // 2. Employee - From Employee Leave Type tbl.
+  // 3. Leave Header query. 
+
+// Get Allocaiton header from the ID param.
+LeaveAllocationHeaderTbl.RESET;
+LeaveAllocationHeaderTbl.SETFILTER("No.", LeaveAllocationHeaderNo);
+IF LeaveAllocationHeaderTbl.FINDFIRST THEN BEGIN
+  
+    // Get Leave Period in the header. Should be an ongoing period
+    LeavePeriodTbl.RESET;
+    LeavePeriodTbl.SETFILTER(Closed, 'No');
+    LeavePeriodTbl.SETFILTER(Code, LeaveAllocationHeaderTbl."Leave Period");
+    IF LeavePeriodTbl.FINDFIRST THEN BEGIN
+     
+      // Get Leave type in the header.
+      LeaveTypeTbl.RESET;
+      LeaveTypeTbl.SETFILTER(Code, LeaveAllocationHeaderTbl."Leave Type");
+      IF LeaveTypeTbl.FINDFIRST THEN BEGIN
+      
+        // Get employees with the header's leave type.
+        EmployeeLeaveTypeTbl.RESET;
+        EmployeeLeaveTypeTbl.SETFILTER("Leave Type", LeaveTypeTbl.Code);
+        IF EmployeeLeaveTypeTbl.FINDSET THEN  BEGIN
+          
+          // Create Leave Allocation Lines based on the filtered details (Leave Header, Employee)
+          Result := '[';
+          REPEAT    
+            // If the allocation line exists then return serialized line otherwise create and serialize
+            LeaveAllocationLineTbl.SETFILTER("Leave Allocation No.", LeaveAllocationHeaderNo);
+            LeaveAllocationLineTbl.SETFILTER("Employee No.", EmployeeLeaveTypeTbl."Employee No.");
+            IF LeaveAllocationLineTbl.FINDFIRST THEN 
+              Result += LeaveAllocationLineSerializer(LeaveAllocationLineTbl)
+            Else
+              Result += CreateLeaveAllocationLine(
+                          LeaveAllocationHeaderNo,
+                          EmployeeLeaveTypeTbl."Employee No.",
+                          'positive adjustment', 
+                          LeaveAllocationHeaderTbl.Description
+                          );
+            IF EmployeeLeaveTypeTbl.NEXT <> 0 THEN
+              Result += ',';
+          
+          UNTIL EmployeeLeaveTypeTbl.NEXT = 0;
+          Result +=  ']';
+
+         END ELSE BEGIN
+           // No employees have been assinged the header's leave type .
+           Result := '[';
+           Result += EmptyLeaveAllocationLine;
+           Result +=  ']';
+         END; 
+
+      END ELSE BEGIN
+        // A leave type obj wasn't assigned to the specified header.
+        Result := '[';
+        Result += EmptyLeaveAllocationLine;
+        Result +=  ']';
+      END;
+
+    END ELSE BEGIN 
+    // Either a leave period obj wasn't assigned to the specified header
+    // or the period is already closed.
+      Result := '[';
+      Result += EmptyLeaveAllocationLine;
+      Result +=  ']';
+    END;
+
+
+END ELSE BEGIN
+  // Header from prams was not found.
+  Result := '[';
+  Result += EmptyLeaveAllocationLine;
+  Result +=  ']';
+  END;
+ 
+
+[External] GetLeaveAllocationLinesRange() Result : Text
+Result := '[';
+
+LeaveAllocationLineTbl.RESET;
+REPEAT 
+  Result += LeaveAllocationLineSerializer(LeaveAllocationLineTbl);
+  IF LeaveAllocationLineTbl.NEXT <> 0 THEN
+    Result += ',';
+  UNTIL LeaveAllocationLineTbl.NEXT = 0;
+Result += ']';
+
+[External] UpdateLeaveAllocationLine(OldLeaveAlloactionHeaderNo : Code[20];OldEmployeeNo : Code[20];LeaveAllocationHeaderNo : Code[20];EmployeeNo : Code[20];EntryType : Text;Description : Text) Result : Text
+LeaveAllocationLineTbl.RESET;
+LeaveAllocationLineTbl.SETFILTER("Employee No.", OldEmployeeNo);
+LeaveAllocationLineTbl.SETFILTER("Leave Allocation No.", OldLeaveAlloactionHeaderNo);
+
+IF LeaveAllocationLineTbl.FINDFIRST THEN BEGIN
+
+  LeaveAllocationHeaderTbl.RESET;
+  LeaveAllocationHeaderTbl.SETFILTER("No.", LeaveAllocationHeaderNo);
+  IF LeaveAllocationHeaderTbl.FINDFIRST THEN BEGIN
+    LeaveAllocationLineTbl."Leave Allocation No." := LeaveAllocationHeaderTbl."No.";
+
+    // Review - entry by user or auto filled on creation?
+    LeaveTypeTbl.RESET;
+    LeaveTypeTbl.SETFILTER(Code, LeaveAllocationHeaderTbl."Leave Type");
+    IF LeaveTypeTbl.FINDFIRST THEN BEGIN
+        LeaveAllocationLineTbl."Days Allocated" := LeaveTypeTbl.Days;
+        LeaveAllocationLineTbl."Days Approved" := LeaveTypeTbl.Days;
+      END;
+
+    END;
+
+  EmployeeTbl.RESET;
+  EmployeeTbl.SETFILTER("No.", EmployeeNo);
+  IF EmployeeTbl.FINDFIRST THEN BEGIN
+      LeaveAllocationLineTbl."Employee No." := EmployeeNo;
+      LeaveAllocationLineTbl."Employee Name" := EmployeeTbl."Full Name";
+      END;
+
+  CASE TRUE OF 
+      LOWERCASE(EntryType) = 'positive adjustment':
+          LeaveAllocationLineTbl."Entry Type" := LeaveAllocationLineTbl."Entry Type"::"Positive Adjustment";
+    
+      LOWERCASE(EntryType) = 'negative adjustment':
+          LeaveAllocationLineTbl."Entry Type" := LeaveAllocationLineTbl."Entry Type"::"Negative Adjustment";
+    
+      LOWERCASE(EntryType) = 'reimbursement':
+          LeaveAllocationLineTbl."Entry Type" := LeaveAllocationLineTbl."Entry Type"::Reimbursement;
+    
+      LOWERCASE(EntryType) = 'carry forward':
+          LeaveAllocationLineTbl."Entry Type" := LeaveAllocationLineTbl."Entry Type"::"Carry forward";
+      END;
+
+  LeaveAllocationLineTbl.Description := Description;
+  LeaveAllocationLineTbl.Status := LeaveAllocationLineTbl.Status::Open;
+  
+  LeaveAllocationLineTbl.MODIFY;
+
+  Result := LeaveAllocationLineSerializer(LeaveAllocationLineTbl);
+  END;
+  
+
+[External] DeleteLeaveAllocationLine(LeaveAllocationHeaderNo : Code[20];EmployeeNo : Code[20]) Result : Text
+LeaveAllocationLineTbl.RESET;
+LeaveAllocationLineTbl.SETFILTER("Employee No.", EmployeeNo);
+LeaveAllocationLineTbl.SETFILTER("Leave Allocation No.", LeaveAllocationHeaderNo);
+
+IF LeaveAllocationLineTbl.FINDFIRST THEN BEGIN
+   LeaveAllocationLineTbl.DELETE;
+   Result := '{"message":"Deletion Succeessfull"}';
+
+END ELSE  
+  Result :=  EmptyLeaveAllocationLine();
+
+LOCAL LeaveAllocationLineSerializer(LeaveAllocationLineTbl : Record "HR Leave Allocation Line") Result : Text
+// Change to variant
+Result := '{';
+Result += '"LeaveAllocationHeaderNo":"'+FORMAT(LeaveAllocationLineTbl."Leave Allocation No.")+'",';
+Result += '"EmployeeNo":"'+FORMAT(LeaveAllocationLineTbl."Employee No.")+'",';
+Result += '"EntryType":"'+FORMAT(LeaveAllocationLineTbl."Entry Type")+'",';
+Result += '"Description":"'+FORMAT(LeaveAllocationLineTbl.Description)+'"';
+Result += '}';
+
+LOCAL EmptyLeaveAllocationLine() Result : Text
+LeaveAllocationLineTbl.INIT;
+LeaveAllocationLineTbl."Employee No." := 'N/A';
+LeaveAllocationLineTbl."Leave Allocation No." := 'N/A';
+Result := LeaveAllocationLineSerializer(LeaveAllocationLineTbl);
+
+LOCAL ---------------------------------------------- Leave Application  ----------------------------------------------()
+
+[External] CreateLeaveApplication(PostingDate : Text;EmployeeNo : Code[20];LeaveType : Code[20];LeavePeriod : Code[20];LeaveStartDate : Text;DaysApplied : Decimal;DaysApproved : Decimal;RelieverNo : Code[20];Status : Text) Result : Text
+
+LeaveApplicationTbl.INIT;
+
+LeaveApplicationTbl.VALIDATE("No.", LeaveApplicationTbl."No.");
+
+IF PostingDate <> '' THEN
+  EVALUATE(LeaveApplicationTbl."Posting Date",PostingDate );
+
+EmployeeTbl.RESET;
+EmployeeTbl.SETFILTER("No.", EmployeeNo);
+IF EmployeeTbl.FINDFIRST THEN
+    LeaveApplicationTbl."Employee No." := EmployeeNo;
+
+LeaveTypeTbl.RESET;
+LeaveTypeTbl.SETFILTER(Code, LeaveType);
+IF LeaveTypeTbl.FINDFIRST THEN
+    LeaveApplicationTbl."Leave Type" := LeaveType;
+
+LeavePeriodTbl.RESET;
+LeavePeriodTbl.SETFILTER(Code, LeavePeriod);
+IF LeavePeriodTbl.FINDFIRST THEN
+    LeaveApplicationTbl."Leave Period" := LeavePeriod;
+
+IF LeaveStartDate <> '' THEN
+  EVALUATE(LeaveApplicationTbl."Leave Start Date",LeaveStartDate );
+
+LeaveApplicationTbl."Days Applied" := DaysApplied;
+
+LeaveApplicationTbl."Days Approved" := DaysApproved;
+
+RelieverTbl.RESET;
+RelieverTbl.SETFILTER("No.", RelieverNo);
+IF RelieverTbl.FINDFIRST THEN
+    LeaveApplicationTbl."Reliever No." := RelieverNo;
+
+CASE TRUE OF 
+    LOWERCASE(Status) = 'open':
+        LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Open;
+  
+    LOWERCASE(Status) = 'pending approval':
+        LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::"Pending Approval";
+    
+    LOWERCASE(Status) = 'released':
+        LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Released;
+    
+    LOWERCASE(Status) = 'rejected':
+        LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Rejected;
+    
+    LOWERCASE(Status) = 'posted':
+        LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Posted;
+    
+    LOWERCASE(Status) = 'escalated':
+        LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Escalated;
+    
+    LOWERCASE(Status) = 'closed':
+        LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Closed;
+    END;
+
+LeaveApplicationTbl.INSERT(TRUE);
+Result := LeaveApplicationSerializer(LeaveApplicationTbl);
+
+[External] GetLeaveApplication(leaveApplicationID : Code[20]) Result : Text
+
+LeaveApplicationTbl.RESET;
+LeaveApplicationTbl.SETFILTER("No.", leaveApplicationID);
+IF LeaveApplicationTbl.FINDFIRST THEN
+   Result := LeaveApplicationSerializer(LeaveApplicationTbl)
+ELSE  
+  Result :=  EmptyLeaveApplication();
+
+[External] GetLeaveApplicationsRange() Result : Text
+Result := '[';
+
+LeaveApplicationTbl.RESET;
+REPEAT 
+    Result += LeaveApplicationSerializer(LeaveApplicationTbl);
+
+    IF LeaveApplicationTbl.NEXT <> 0 THEN
+        Result += ',';
+UNTIL LeaveApplicationTbl.NEXT = 0;
+
+Result += ']';
+
+[External] UpdateLeaveApplication(LeaveApplicationID : Code[20];PostingDate : Text;EmployeeNo : Code[20];LeaveType : Code[20];LeavePeriod : Code[20];LeaveStartDate : Text;DaysApplied : Decimal;DaysApproved : Decimal;RelieverNo : Code[20];Status : Text
+
+LeaveApplicationTbl.RESET;
+LeaveApplicationTbl.SETFILTER("No.", LeaveApplicationID);
+IF LeaveApplicationTbl.FINDFIRST THEN BEGIN
+  IF PostingDate <> '' THEN
+    EVALUATE(LeaveApplicationTbl."Posting Date",PostingDate );
+
+  EmployeeTbl.RESET;
+  EmployeeTbl.SETFILTER("No.", EmployeeNo);
+  IF EmployeeTbl.FINDFIRST THEN
+      LeaveApplicationTbl."Employee No." := EmployeeNo;
+
+  LeaveTypeTbl.RESET;
+  LeaveTypeTbl.SETFILTER(Code, LeaveType);
+  IF LeaveTypeTbl.FINDFIRST THEN
+      LeaveApplicationTbl."Leave Type" := LeaveType;
+
+  LeavePeriodTbl.RESET;
+  LeavePeriodTbl.SETFILTER(Code, LeavePeriod);
+  IF LeavePeriodTbl.FINDFIRST THEN
+      LeaveApplicationTbl."Leave Period" := LeavePeriod;
+
+  IF LeaveStartDate <> '' THEN
+    EVALUATE(LeaveApplicationTbl."Leave Start Date",LeaveStartDate );
+
+  LeaveApplicationTbl."Days Applied" := DaysApplied;
+
+  LeaveApplicationTbl."Days Approved" := DaysApproved;
+
+  RelieverTbl.RESET;
+  RelieverTbl.SETFILTER("No.", RelieverNo);
+  IF RelieverTbl.FINDFIRST THEN
+      LeaveApplicationTbl."Reliever No." := RelieverNo;
+
+
+  CASE TRUE OF 
+      LOWERCASE(Status) = 'open':
+          LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Open;
+  
+      LOWERCASE(Status) = 'pending approval':
+          LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::"Pending Approval";
+    
+      LOWERCASE(Status) = 'released':
+          LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Released;
+    
+      LOWERCASE(Status) = 'rejected':
+          LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Rejected;
+    
+      LOWERCASE(Status) = 'posted':
+          LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Posted;
+    
+      LOWERCASE(Status) = 'escalated':
+          LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Escalated;
+    
+      LOWERCASE(Status) = 'closed':
+          LeaveApplicationTbl.Status := LeaveApplicationTbl.Status::Closed;
+      END;
+    Result := LeaveApplicationSerializer(LeaveApplicationTbl);
+
+END ELSE  
+  Result :=  EmptyLeaveApplication();
+
+[External] DeleteLeaveApplication(LeaveApplicationID : Code[20]) Result : Text
+LeaveApplicationTbl.RESET;
+
+LeaveApplicationTbl.SETFILTER("No.", LeaveApplicationID);
+
+IF LeaveApplicationTbl.FINDFIRST THEN BEGIN
+   LeaveApplicationTbl.DELETE;
+   Result := '{"message":"Deletion Succeessfull"}';
+
+END ELSE  
+  Result :=  EmptyLeaveApplication();
+
+LOCAL LeaveApplicationSerializer(LeaveApplicationTbl : Record "HR Leave Application") Result : Text
+// Change to variant
+Result := '{'; 
+Result += '"No":"'+FORMAT(LeaveApplicationTbl."No.")+'",';
+Result += '"PostingDate":"'+FORMAT(LeaveApplicationTbl."Posting Date")+'",';
+Result += '"EmployeeNo":"'+FORMAT(LeaveApplicationTbl."Employee No.")+'",';
+Result += '"LeaveType":"'+FORMAT(LeaveApplicationTbl."Leave Type")+'",';
+Result += '"LeavePeriod":"'+FORMAT(LeaveApplicationTbl."Leave Period")+'",';
+Result += '"LeaveStartDate":"'+FORMAT(LeaveApplicationTbl."Leave Start Date")+'",';
+Result += '"DaysApplied":"'+FORMAT(LeaveApplicationTbl."Days Applied")+'",';
+Result += '"DaysApproved":"'+FORMAT(LeaveApplicationTbl."Days Approved")+'",';
+Result += '"RelieverNo":"'+FORMAT(LeaveApplicationTbl."Reliever No.")+'",';
+Result += '"Status":"'+FORMAT(LeaveApplicationTbl.Status)+'"';
+Result += '}'; 
+
+LOCAL EmptyLeaveApplication() Result : Text
+leaveApplicationTbl.INIT;
+leaveApplicationTbl."No." := 'N/A';
+Result := LeaveApplicationSerializer(leaveApplicationTbl);

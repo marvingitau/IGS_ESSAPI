@@ -147,7 +147,7 @@ namespace Gateway.Controllers
         }
 
 
-
+        // --------------------------- INACTIVE Employees --------------------------- 
         [HttpGet]
         [Route("inactive/{employeeID}")]
         public async Task<IActionResult> GetInactiveEmployee(string employeeID)
@@ -157,7 +157,9 @@ namespace Gateway.Controllers
 
             return Ok(new { res });
         }
-
+       
+        
+        // --------------------------- TEMINANTED Employees --------------------------- 
         [HttpGet]
         [Route("terminated/{employeeID}")]
         public async Task<IActionResult> GetTerminatedEmployee(string employeeID)
