@@ -2,7 +2,10 @@
 using HREmployeeWS;
 using IncidentsWS;
 using LeaveManagementWS;
+using RecruitmentManagementWS;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Options;
+using System.Security.Policy;
 using System.ServiceModel;
 
 namespace Gateway.WSAssets
@@ -80,6 +83,17 @@ namespace Gateway.WSAssets
             return leaveManagementWS;
         }
 
+        public HRRecruitmentManagementWS_PortClient HRRecruitmentManagementWS()
+        {
+            HRRecruitmentManagementWS_PortClient recruitmentMgtWs = new HRRecruitmentManagementWS_PortClient(
+                HRRecruitmentManagementWS_PortClient
+                .EndpointConfiguration
+                .HRRecruitmentManagementWS_Port);
+            var url = GetSeviceURL("HRRecruitmentManagementWS");
+            recruitmentMgtWs.Endpoint.Address = new EndpointAddress(url);
+            return recruitmentMgtWs;
+        }
+    
 
 
     }
