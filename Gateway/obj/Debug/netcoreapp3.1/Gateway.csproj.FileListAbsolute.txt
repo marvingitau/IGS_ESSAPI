@@ -156,3 +156,4 @@ C:\Users\brian\OneDrive\Desktop\stuff\IGS\Development\ESSAPI\Gateway\obj\Debug\n
 C:\Users\brian\OneDrive\Desktop\stuff\IGS\Development\ESSAPI\Gateway\bin\Debug\netcoreapp3.1\Connected Services\HREmployeeWS\ConnectedService.json
 C:\Users\brian\OneDrive\Desktop\stuff\IGS\Development\ESSAPI\Gateway\bin\Debug\netcoreapp3.1\Connected Services\LeaveManagementWS\ConnectedService.json
 C:\Users\brian\OneDrive\Desktop\stuff\IGS\Development\ESSAPI\Gateway\bin\Debug\netcoreapp3.1\Connected Services\RecruitmentManagementWS\ConnectedService.json
+C:\Users\brian\OneDrive\Desktop\stuff\IGS\Development\ESSAPI\Gateway\bin\Debug\netcoreapp3.1\Connected Services\JobsManagementWS\ConnectedService.json

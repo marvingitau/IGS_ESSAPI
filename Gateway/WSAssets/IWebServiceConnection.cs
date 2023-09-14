@@ -3,6 +3,7 @@ using HREmployeeWS;
 using IncidentsWS;
 using LeaveManagementWS;
 using RecruitmentManagementWS;
+using JobsManagementWS;
 
 namespace Gateway.WSAssets
 {
@@ -13,6 +14,7 @@ namespace Gateway.WSAssets
         HREmployeeWebService_PortClient HREmployeeWS();
         HRLeaveManagementWS_PortClient HRLeaveManagementWS();
         HRRecruitmentManagementWS_PortClient HRRecruitmentManagementWS();
+        HRJobsManagementWS_PortClient HRJobsManagementWS();
 
     }
 }
