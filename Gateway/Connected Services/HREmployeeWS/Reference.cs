@@ -16,20 +16,57 @@ namespace HREmployeeWS
     public interface HREmployeeWebService_Port
     {
         
+        [System.ServiceModel.OperationContractAttribute(Action="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService:CreateEmployee", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        System.Threading.Tasks.Task<HREmployeeWS.CreateEmployee_Result> CreateEmployeeAsync(HREmployeeWS.CreateEmployee request);
+        
         [System.ServiceModel.OperationContractAttribute(Action="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService:GetEmployeesRange", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
         System.Threading.Tasks.Task<HREmployeeWS.GetEmployeesRange_Result> GetEmployeesRangeAsync(HREmployeeWS.GetEmployeesRange request);
         
         [System.ServiceModel.OperationContractAttribute(Action="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService:GetEmployee", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
         System.Threading.Tasks.Task<HREmployeeWS.GetEmployee_Result> GetEmployeeAsync(HREmployeeWS.GetEmployee request);
         
-        [System.ServiceModel.OperationContractAttribute(Action="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService:CreateEmployee", ReplyAction="*")]
-        System.Threading.Tasks.Task<HREmployeeWS.CreateEmployee_Result> CreateEmployeeAsync(HREmployeeWS.CreateEmployee request);
-        
         [System.ServiceModel.OperationContractAttribute(Action="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService:UpdateEmployee", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
         System.Threading.Tasks.Task<HREmployeeWS.UpdateEmployee_Result> UpdateEmployeeAsync(HREmployeeWS.UpdateEmployee request);
         
         [System.ServiceModel.OperationContractAttribute(Action="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService:DeleteEmployee", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
         System.Threading.Tasks.Task<HREmployeeWS.DeleteEmployee_Result> DeleteEmployeeAsync(HREmployeeWS.DeleteEmployee request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.1.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="CreateEmployee", WrapperNamespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", IsWrapped=true)]
+    public partial class CreateEmployee
+    {
+        
+        public CreateEmployee()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.1.0")]
+    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="CreateEmployee_Result", WrapperNamespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", IsWrapped=true)]
+    public partial class CreateEmployee_Result
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=0)]
+        public string return_value;
+        
+        public CreateEmployee_Result()
+        {
+        }
+        
+        public CreateEmployee_Result(string return_value)
+        {
+            this.return_value = return_value;
+        }
     }
     
     [System.Diagnostics.DebuggerStepThroughAttribute()]
@@ -127,120 +164,36 @@ namespace HREmployeeWS
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.1.0")]
     [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
-    [System.ServiceModel.MessageContractAttribute(WrapperName="CreateEmployee", WrapperNamespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", IsWrapped=true)]
-    public partial class CreateEmployee
-    {
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=0)]
-        public string firstName;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=1)]
-        public string middleName;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=2)]
-        public string lastName;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=3)]
-        public string gender;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=4)]
-        public string jobTitle;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=5)]
-        public string managerNo;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=6)]
-        public string email;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=7)]
-        public string phoneNo;
-        
-        public CreateEmployee()
-        {
-        }
-        
-        public CreateEmployee(string firstName, string middleName, string lastName, string gender, string jobTitle, string managerNo, string email, string phoneNo)
-        {
-            this.firstName = firstName;
-            this.middleName = middleName;
-            this.lastName = lastName;
-            this.gender = gender;
-            this.jobTitle = jobTitle;
-            this.managerNo = managerNo;
-            this.email = email;
-            this.phoneNo = phoneNo;
-        }
-    }
-    
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.1.0")]
-    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
-    [System.ServiceModel.MessageContractAttribute(WrapperName="CreateEmployee_Result", WrapperNamespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", IsWrapped=true)]
-    public partial class CreateEmployee_Result
-    {
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=0)]
-        public string return_value;
-        
-        public CreateEmployee_Result()
-        {
-        }
-        
-        public CreateEmployee_Result(string return_value)
-        {
-            this.return_value = return_value;
-        }
-    }
-    
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "2.1.0")]
-    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
     [System.ServiceModel.MessageContractAttribute(WrapperName="UpdateEmployee", WrapperNamespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", IsWrapped=true)]
     public partial class UpdateEmployee
     {
         
         [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=0)]
-        public string employeeID;
+        [System.Xml.Serialization.XmlElementAttribute("stringArray")]
+        public string[] stringArray;
         
         [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=1)]
-        public string firstName;
+        [System.Xml.Serialization.XmlElementAttribute("boolArray")]
+        public bool[] boolArray;
         
         [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=2)]
-        public string middleName;
+        [System.Xml.Serialization.XmlElementAttribute("decimalArray")]
+        public decimal[] decimalArray;
         
         [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=3)]
-        public string lastName;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=4)]
-        public string gender;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=5)]
-        public string jobTitle;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=6)]
-        public string managerNo;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=7)]
-        public string eMail;
-        
-        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="urn:microsoft-dynamics-schemas/codeunit/HREmployeeWebService", Order=8)]
-        public string phoneNo;
+        [System.Xml.Serialization.XmlElementAttribute("integerArray")]
+        public int[] integerArray;
         
         public UpdateEmployee()
         {
         }
         
-        public UpdateEmployee(string employeeID, string firstName, string middleName, string lastName, string gender, string jobTitle, string managerNo, string eMail, string phoneNo)
+        public UpdateEmployee(string[] stringArray, bool[] boolArray, decimal[] decimalArray, int[] integerArray)
         {
-            this.employeeID = employeeID;
-            this.firstName = firstName;
-            this.middleName = middleName;
-            this.lastName = lastName;
-            this.gender = gender;
-            this.jobTitle = jobTitle;
-            this.managerNo = managerNo;
-            this.eMail = eMail;
-            this.phoneNo = phoneNo;
+            this.stringArray = stringArray;
+            this.boolArray = boolArray;
+            this.decimalArray = decimalArray;
+            this.integerArray = integerArray;
         }
     }
     
@@ -355,6 +308,18 @@ namespace HREmployeeWS
         }
         
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
+        System.Threading.Tasks.Task<HREmployeeWS.CreateEmployee_Result> HREmployeeWS.HREmployeeWebService_Port.CreateEmployeeAsync(HREmployeeWS.CreateEmployee request)
+        {
+            return base.Channel.CreateEmployeeAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<HREmployeeWS.CreateEmployee_Result> CreateEmployeeAsync()
+        {
+            HREmployeeWS.CreateEmployee inValue = new HREmployeeWS.CreateEmployee();
+            return ((HREmployeeWS.HREmployeeWebService_Port)(this)).CreateEmployeeAsync(inValue);
+        }
+        
+        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         System.Threading.Tasks.Task<HREmployeeWS.GetEmployeesRange_Result> HREmployeeWS.HREmployeeWebService_Port.GetEmployeesRangeAsync(HREmployeeWS.GetEmployeesRange request)
         {
             return base.Channel.GetEmployeesRangeAsync(request);
@@ -384,43 +349,18 @@ namespace HREmployeeWS
         }
         
         [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
-        System.Threading.Tasks.Task<HREmployeeWS.CreateEmployee_Result> HREmployeeWS.HREmployeeWebService_Port.CreateEmployeeAsync(HREmployeeWS.CreateEmployee request)
-        {
-            return base.Channel.CreateEmployeeAsync(request);
-        }
-        
-        public System.Threading.Tasks.Task<HREmployeeWS.CreateEmployee_Result> CreateEmployeeAsync(string firstName, string middleName, string lastName, string gender, string jobTitle, string managerNo, string email, string phoneNo)
-        {
-            HREmployeeWS.CreateEmployee inValue = new HREmployeeWS.CreateEmployee();
-            inValue.firstName = firstName;
-            inValue.middleName = middleName;
-            inValue.lastName = lastName;
-            inValue.gender = gender;
-            inValue.jobTitle = jobTitle;
-            inValue.managerNo = managerNo;
-            inValue.email = email;
-            inValue.phoneNo = phoneNo;
-            return ((HREmployeeWS.HREmployeeWebService_Port)(this)).CreateEmployeeAsync(inValue);
-        }
-        
-        [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)]
         System.Threading.Tasks.Task<HREmployeeWS.UpdateEmployee_Result> HREmployeeWS.HREmployeeWebService_Port.UpdateEmployeeAsync(HREmployeeWS.UpdateEmployee request)
         {
             return base.Channel.UpdateEmployeeAsync(request);
         }
         
-        public System.Threading.Tasks.Task<HREmployeeWS.UpdateEmployee_Result> UpdateEmployeeAsync(string employeeID, string firstName, string middleName, string lastName, string gender, string jobTitle, string managerNo, string eMail, string phoneNo)
+        public System.Threading.Tasks.Task<HREmployeeWS.UpdateEmployee_Result> UpdateEmployeeAsync(string[] stringArray, bool[] boolArray, decimal[] decimalArray, int[] integerArray)
         {
             HREmployeeWS.UpdateEmployee inValue = new HREmployeeWS.UpdateEmployee();
-            inValue.employeeID = employeeID;
-            inValue.firstName = firstName;
-            inValue.middleName = middleName;
-            inValue.lastName = lastName;
-            inValue.gender = gender;
-            inValue.jobTitle = jobTitle;
-            inValue.managerNo = managerNo;
-            inValue.eMail = eMail;
-            inValue.phoneNo = phoneNo;
+            inValue.stringArray = stringArray;
+            inValue.boolArray = boolArray;
+            inValue.decimalArray = decimalArray;
+            inValue.integerArray = integerArray;
             return ((HREmployeeWS.HREmployeeWebService_Port)(this)).UpdateEmployeeAsync(inValue);
         }
         

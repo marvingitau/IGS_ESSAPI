@@ -1,0 +1,6 @@
+2023-09-15T08:00:16.3852857+03:00  [INF] Application started. Press Ctrl+C to shut down. (dcaefe54)
+2023-09-15T08:00:16.4253720+03:00  [INF] Hosting environment: "Development" (c3307c92)
+2023-09-15T08:00:16.4323360+03:00  [INF] Content root path: "C:\Users\brian\OneDrive\Desktop\stuff\IGS\Development\ESSAPI\Gateway" (b5d60022)
+2023-09-15T08:07:33.1581160+03:00  [INF] Application started. Press Ctrl+C to shut down. (dcaefe54)
+2023-09-15T08:07:33.1999033+03:00  [INF] Hosting environment: "Development" (c3307c92)
+2023-09-15T08:07:33.2851776+03:00  [INF] Content root path: "C:\Users\brian\OneDrive\Desktop\stuff\IGS\Development\ESSAPI\Gateway" (b5d60022)

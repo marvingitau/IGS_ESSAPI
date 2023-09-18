@@ -7,6 +7,30 @@ Documentation()
 
 OnRun()
 
+LOCAL JsonBoolean(BoolVar : Boolean) Result : Text
+IF BoolVar THEN 
+  Result := 'true'
+ELSE
+  Result := 'false';
+
+LOCAL ResponseFormat(status : Integer;payload : Text;message : Text) Result : Text
+Result := '{';
+Result += '"Status":'+FORMAT(status)+',';
+IF payload<>'' THEN 
+  Result += '"Payload":"'+FORMAT(payload)+'",';
+Result += '"Message":"'+FORMAT(message)+'"';
+Result += '}';
+
+[External] CreateEmployee() Result : Text
+EmployeeTbl.INIT;
+success := EmployeeTbl.INSERT(TRUE);
+IF success THEN BEGIN
+  Result := '{\"EmployeeNo\": \"'+FORMAT(EmployeeTbl."No.")+'\"}'; 
+  Result := ResponseFormat(200, Result, 'Employee No. was generated successfully');
+END ELSE BEGIN
+  Result := ResponseFormat(500, '', 'Employee No. was NOT generated.');
+
+END;
 [External] GetEmployeesRange(StartIndex : Integer;SelectRange : Integer;EmployeeStatus : Text) Result : Text
 EmployeeTbl.RESET;
 CASE TRUE OF
@@ -53,134 +77,1844 @@ CASE TRUE OF
 
 EmployeeTbl.SETFILTER("No.", EmployeeID);
 IF EmployeeTbl.FINDFIRST THEN BEGIN
-    MESSAGE('%1 is %2', EmployeeID, EmployeeTbl."Full Name");
-    Result := EmployeeSerializer(EmployeeTbl);
-  END
-  ELSE BEGIN
-    Result := EmptyEmployee();
-  END;
-
-[External] CreateEmployee(FirstName : Text;MiddleName : Text;LastName : Text;Gender : Text;JobTitle : Text;ManagerNo : Text;Email : Text;PhoneNo : Text) Result : Text
-EmployeeTbl.INIT();
-
-EmployeeTbl."First Name" := FirstName;
-EmployeeTbl."Middle Name" := MiddleName;
-EmployeeTbl."Last Name" := LastName;
-CASE TRUE OF
-  LOWERCASE(Gender)= 'female':
-    EmployeeTbl.Gender := EmployeeTbl.Gender::Female;
-  LOWERCASE(Gender)= 'male':
-    EmployeeTbl.Gender := EmployeeTbl.Gender::Male;
-END;
-EmployeeTbl."Job Title" := JobTitle;
-
-IF ManagerNo <> '' THEN BEGIN
-  ManagerTbl.SETFILTER("No.", ManagerNo);
-  IF ManagerTbl.FINDFIRST THEN
-    EmployeeTbl."Manager No." := ManagerTbl."No.";
+   Result := EmployeeSerializer(EmployeeTbl);
+   Result := ResponseFormat(200, Result, 'Employee was found.');
+END ELSE  BEGIN
+  Result :=  EmptyEmployee();  
+  Result := ResponseFormat(404, Result, 'Not found.');
 END;
 
-EmployeeTbl.Status := EmployeeTbl.Status::Active;
+[External] UpdateEmployee(stringArray : ARRAY [187] OF Text;boolArray : ARRAY [10] OF Boolean;decimalArray : ARRAY [20] OF Decimal;integerArray : ARRAY [2] OF Integer) Result : Text
 
-EmployeeTbl."E-Mail" := Email;
-EmployeeTbl."Phone No." := PhoneNo;
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."No." := stringArray[1];
 
-EmployeeTbl.INSERT;
-MESSAGE(EmployeeTbl."No.");
-Result := EmployeeSerializer(EmployeeTbl);
 
-[External] UpdateEmployee(EmployeeID : Text;FirstName : Text;MiddleName : Text;LastName : Text;Gender : Text;JobTitle : Text;ManagerNo : Text;EMail : Text;PhoneNo : Text) Result : Text
-EmployeeTbl.INIT;
+        // BASE DATA Types
+EmployeeTbl."First Name" := stringArray[2];
+
+        // BASE DATA Types
+EmployeeTbl."Middle Name" := stringArray[3];
+
+        // BASE DATA Types
+EmployeeTbl."Last Name" := stringArray[4];
+
+        // BASE DATA Types
+EmployeeTbl.Initials := stringArray[5];
+
+        // BASE DATA Types
+EmployeeTbl."Job Title" := stringArray[6];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Search Name" := stringArray[7];
+
+
+
+        // BASE DATA Types
+EmployeeTbl.Address := stringArray[8];
+
+        // BASE DATA Types
+EmployeeTbl."Address 2" := stringArray[9];
+
+        // BASE DATA Types
+EmployeeTbl.City := stringArray[10];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[11] <> '' THEN BEGIN
+    PostCodeTbl.RESET;
+    PostCodeTbl.SETFILTER(Code, stringArray[11] );
+    IF PostCodeTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Post Code" := PostCodeTbl.Code;
+        EmployeeTbl.City := PostCodeTbl.City;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl.County := stringArray[12];
+
+        // BASE DATA Types
+EmployeeTbl."Phone No." := stringArray[13];
+
+        // BASE DATA Types
+EmployeeTbl."Mobile Phone No." := stringArray[14];
+
+        // BASE DATA Types
+EmployeeTbl."E-Mail" := stringArray[15];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[16] <> '' THEN BEGIN
+    AlternativeAddressTbl.RESET;
+    AlternativeAddressTbl.SETFILTER(Code, stringArray[16] );
+    AlternativeAddressTbl.SETFILTER("Employee No.", EmployeeTbl."No.");
+    IF AlternativeAddressTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Alt. Address Code" := AlternativeAddressTbl.Code;
+    END;
+END;
+
+
+
+        // DT DATA Types
+IF stringArray[17] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Alt. Address Start Date",stringArray[17]);
+END;
+
+        // DT DATA Types
+IF stringArray[18] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Alt. Address End Date",stringArray[18]);
+END;
+
+
+        // DT DATA Types
+IF stringArray[20] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Birth Date",stringArray[20]);
+END;
+
+        // BASE DATA Types
+EmployeeTbl."Social Security No." := stringArray[21];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[22] <> '' THEN BEGIN
+    UnionTbl.RESET;
+    UnionTbl.SETFILTER(Code, stringArray[22] );
+    IF UnionTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Union Code" := UnionTbl.Code;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Union Membership No." := stringArray[23];
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[24]) = ' ':
+        EmployeeTbl.Gender := EmployeeTbl.Gender::" ";
+    LOWERCASE(stringArray[24]) = 'female':
+        EmployeeTbl.Gender := EmployeeTbl.Gender::Female;
+    LOWERCASE(stringArray[24]) = 'male':
+        EmployeeTbl.Gender := EmployeeTbl.Gender::Male;
+
+    END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[25] <> '' THEN BEGIN
+    CountryRegionTbl.RESET;
+    CountryRegionTbl.SETFILTER(Code, stringArray[25] );
+    IF CountryRegionTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Country/Region Code" := CountryRegionTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[26] <> '' THEN BEGIN
+    ManagerTbl.RESET;
+    ManagerTbl.SETFILTER("No.", stringArray[26] );
+    IF ManagerTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Manager No." := ManagerTbl."No.";
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[27] <> '' THEN BEGIN
+    EmploymentContractTbl.RESET;
+    EmploymentContractTbl.SETFILTER(Code, stringArray[27] );
+    IF EmploymentContractTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Emplymt. Contract Code" := EmploymentContractTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[28] <> '' THEN BEGIN
+    EmployeeStatisticsGroupTbl.RESET;
+    EmployeeStatisticsGroupTbl.SETFILTER(Code, stringArray[28] );
+    IF EmployeeStatisticsGroupTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Statistics Group Code" := EmployeeStatisticsGroupTbl.Code;
+    END;
+END;
+
+
+
+        // DT DATA Types
+IF stringArray[29] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Employment Date",stringArray[29]);
+END;
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[30]) = 'active':
+        EmployeeTbl.Status := EmployeeTbl.Status::Active;
+    LOWERCASE(stringArray[30]) = 'inactive':
+        EmployeeTbl.Status := EmployeeTbl.Status::Inactive;
+    LOWERCASE(stringArray[30]) = 'terminated':
+        EmployeeTbl.Status := EmployeeTbl.Status::Terminated;
+    LOWERCASE(stringArray[30]) = 'approver':
+        EmployeeTbl.Status := EmployeeTbl.Status::Approver;
+
+    END;
+
+        // DT DATA Types
+IF stringArray[31] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Inactive Date",stringArray[31]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[32] <> '' THEN BEGIN
+    CauseofInactivityTbl.RESET;
+    CauseofInactivityTbl.SETFILTER(Code, stringArray[32] );
+    IF CauseofInactivityTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Cause of Inactivity Code" := CauseofInactivityTbl.Code;
+    END;
+END;
+
+
+
+        // DT DATA Types
+IF stringArray[33] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Termination Date",stringArray[33]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[34] <> '' THEN BEGIN
+    GroundsforTerminationTbl.RESET;
+    GroundsforTerminationTbl.SETFILTER(Code, stringArray[34] );
+    IF GroundsforTerminationTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Grounds for Term. Code" := GroundsforTerminationTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[35] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '1' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[35] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Global Dimension 1 Code" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[36] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '2' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[36] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Global Dimension 2 Code" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[37] <> '' THEN BEGIN
+    ResourceTbl.RESET;
+    ResourceTbl.SETFILTER(Type, 'Person' );
+    ResourceTbl.SETFILTER("No.", stringArray[37] );
+    IF ResourceTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Resource No." := ResourceTbl."No.";
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl.Comment := boolArray[1];
+
+        // DT DATA Types
+IF stringArray[38] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Last Date Modified",stringArray[38]);
+END;
+
+        // DT DATA Types
+IF stringArray[39] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Date Filter",stringArray[39]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[40] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '1' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[40] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Global Dimension 1 Filter" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[41] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '2' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[41] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Global Dimension 2 Filter" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[42] <> '' THEN BEGIN
+    CauseofAbsenceTbl.RESET;
+    CauseofAbsenceTbl.SETFILTER(Code, stringArray[42] );
+    IF CauseofAbsenceTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Cause of Absence Filter" := CauseofAbsenceTbl.Code;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Total Absence (Base)" := decimalArray[1];
+
+        // BASE DATA Types
+EmployeeTbl.Extension := stringArray[43];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[44] <> '' THEN BEGIN
+    EmployeeTbl.RESET;
+    EmployeeTbl.SETFILTER("No.", stringArray[44] );
+    IF EmployeeTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Employee No. Filter" := EmployeeTbl."No.";
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl.Pager := stringArray[45];
+
+        // BASE DATA Types
+EmployeeTbl."Fax No." := stringArray[46];
+
+        // BASE DATA Types
+EmployeeTbl."Company E-Mail" := stringArray[47];
+
+        // BASE DATA Types
+EmployeeTbl.Title := stringArray[48];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[49] <> '' THEN BEGIN
+    purchaseorderTbl.RESET;
+    purchaseorderTbl.SETFILTER(Code, stringArray[49] );
+    IF purchaseorderTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Salespers./Purch. Code" := purchaseorderTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[50] <> '' THEN BEGIN
+    NoSeriesTbl.RESET;
+    NoSeriesTbl.SETFILTER(Code, stringArray[50] );
+    IF NoSeriesTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."No. Series" := NoSeriesTbl.Code;
+    END;
+END;
+
+
+
+        // DT DATA Types
+IF stringArray[51] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Last Modified Date Time",stringArray[51]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[52] <> '' THEN BEGIN
+    EmployeePostingGroupTbl.RESET;
+    EmployeePostingGroupTbl.SETFILTER(Code, stringArray[52] );
+    IF EmployeePostingGroupTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Employee Posting Group" := EmployeePostingGroupTbl.Code;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Bank Branch No." := stringArray[53];
+
+        // BASE DATA Types
+EmployeeTbl."Bank Account No1." := stringArray[54];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl.IBAN := stringArray[55];
+
+
+
+        // BASE DATA Types
+EmployeeTbl.Balance := decimalArray[2];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[56] <> '' THEN BEGIN
+    SWIFTCodeTbl.RESET;
+    SWIFTCodeTbl.SETFILTER(Code, stringArray[56] );
+    IF SWIFTCodeTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."SWIFT Code" := SWIFTCodeTbl.Code;
+    END;
+END;
+
+
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[57]) = 'manual':
+        EmployeeTbl."Application Method" := EmployeeTbl."Application Method"::Manual;
+    LOWERCASE(stringArray[57]) = 'apply to oldest':
+        EmployeeTbl."Application Method" := EmployeeTbl."Application Method"::"Apply to Oldest";
+
+    END;
+
+
+        // BASE DATA Types
+EmployeeTbl."Privacy Blocked" := boolArray[2];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[59] <> '' THEN BEGIN
+    CostCenterTbl.RESET;
+    CostCenterTbl.SETFILTER(Code, stringArray[59] );
+    IF CostCenterTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Cost Center Code" := CostCenterTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[60] <> '' THEN BEGIN
+    CostObjectTbl.RESET;
+    CostObjectTbl.SETFILTER(Code, stringArray[60] );
+    IF CostObjectTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Cost Object Code" := CostObjectTbl.Code;
+    END;
+END;
+
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[62] <> '' THEN BEGIN
+    NoSeriesTbl.RESET;
+    NoSeriesTbl.SETFILTER(Code, stringArray[62] );
+    IF NoSeriesTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Emp Branch Code" := NoSeriesTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Bank Branch Code" := stringArray[63];
+
+
+
+        // BASE DATA Types
+EmployeeTbl."National ID" := stringArray[64];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[65] <> '' THEN BEGIN
+    CustomerTbl.RESET;
+    CustomerTbl.SETFILTER("No.", stringArray[65] );
+    IF CustomerTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Customer No." := CustomerTbl."No.";
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Name of Old Employer" := stringArray[66];
+
+        // BASE DATA Types
+EmployeeTbl."Address of Old Employer" := stringArray[67];
+
+        // BASE DATA Types
+EmployeeTbl."Name of New Employer" := stringArray[68];
+
+        // BASE DATA Types
+EmployeeTbl."Address of New Employer" := stringArray[69];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[70] <> '' THEN BEGIN
+    CalculationHeaderTbl.RESET;
+    CalculationHeaderTbl.SETFILTER("Scheme ID", stringArray[70] );
+    IF CalculationHeaderTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Calculation Scheme" := CalculationHeaderTbl."Scheme ID";
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[71] <> '' THEN BEGIN
+    ModeofPaymentTbl.RESET;
+    ModeofPaymentTbl.SETFILTER(Code, stringArray[71] );
+    IF ModeofPaymentTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Mode of Payment" := ModeofPaymentTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[72] <> '' THEN BEGIN
+    EmployeeBankAccountTbl.RESET;
+    EmployeeBankAccountTbl.SETFILTER("No.", stringArray[72] );
+    IF EmployeeBankAccountTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Bank Code" := EmployeeBankAccountTbl."No.";
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Bank Account No" := stringArray[73];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[74] <> '' THEN BEGIN
+    EDDefinitionsTbl.RESET;
+    EDDefinitionsTbl.SETFILTER("ED Code", stringArray[74] );
+    IF EDDefinitionsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."ED Code Filter" := EDDefinitionsTbl."ED Code";
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Period Filter" := stringArray[75];
+
+
+
+        // BASE DATA Types
+EmployeeTbl.Amount := decimalArray[3];
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[76]) = 'none':
+        EmployeeTbl."Calculation Group Filter" := EmployeeTbl."Calculation Group Filter"::None;
+    LOWERCASE(stringArray[76]) = 'payments':
+        EmployeeTbl."Calculation Group Filter" := EmployeeTbl."Calculation Group Filter"::Payments;
+    LOWERCASE(stringArray[76]) = 'benefit non cash':
+        EmployeeTbl."Calculation Group Filter" := EmployeeTbl."Calculation Group Filter"::"Benefit non Cash";
+    LOWERCASE(stringArray[76]) = 'deduction':
+        EmployeeTbl."Calculation Group Filter" := EmployeeTbl."Calculation Group Filter"::Deduction;
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl.Loans := decimalArray[4];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[77] <> '' THEN BEGIN
+    EmployeePostingGroupsTbl.RESET;
+    EmployeePostingGroupsTbl.SETFILTER("Posting Group", stringArray[77] );
+    IF EmployeePostingGroupsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Posting Group" := EmployeePostingGroupsTbl."Posting Group";
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[78] <> '' THEN BEGIN
+    SalaryScaleTbl.RESET;
+    SalaryScaleTbl.SETFILTER(Code, stringArray[78] );
+    IF SalaryScaleTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Salary Scale" := SalaryScaleTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[79] <> '' THEN BEGIN
+    SalaryScaleStepTbl.RESET;
+    SalaryScaleStepTbl.SETFILTER(Scale, EmployeeTbl."Salary Scale");
+    SalaryScaleStepTbl.SETFILTER(Code, stringArray[79] );
+    IF SalaryScaleStepTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Scale Step" := SalaryScaleStepTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[80] <> '' THEN BEGIN
+    PaystationTbl.RESET;
+    PaystationTbl.SETFILTER(Paystation, stringArray[80] );
+    IF PaystationTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl.Paystation := PaystationTbl.Paystation;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Fixed Pay" := decimalArray[5];
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[81]) = ' ':
+        EmployeeTbl."Basic Pay" := EmployeeTbl."Basic Pay"::" ";
+    LOWERCASE(stringArray[81]) = 'none':
+        EmployeeTbl."Basic Pay" := EmployeeTbl."Basic Pay"::None;
+    LOWERCASE(stringArray[81]) = 'fixed':
+        EmployeeTbl."Basic Pay" := EmployeeTbl."Basic Pay"::Fixed;
+    LOWERCASE(stringArray[81]) = 'scale':
+        EmployeeTbl."Basic Pay" := EmployeeTbl."Basic Pay"::Scale;
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl."Hourly Rate" := decimalArray[6];
+
+        // BASE DATA Types
+EmployeeTbl."Daily Rate" := decimalArray[7];
+
+        // BASE DATA Types
+EmployeeTbl."Amount To Date" := decimalArray[8];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[82] <> '' THEN BEGIN
+    PayrollTbl.RESET;
+    PayrollTbl.SETFILTER(Code, stringArray[82] );
+    IF PayrollTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Payroll Code" := PayrollTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Membership No." := stringArray[83];
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Amount (LCY)" := decimalArray[9];
+
+        // BASE DATA Types
+EmployeeTbl."Amount To Date (LCY)" := decimalArray[10];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Currency Filter" := stringArray[84];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[85] <> '' THEN BEGIN
+    CurrencyTbl.RESET;
+    CurrencyTbl.SETFILTER(Code, stringArray[85] );
+    IF CurrencyTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Basic Pay Currency" := CurrencyTbl.Code;
+    END;
+END;
+
+
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[86]) = 'not housed':
+        EmployeeTbl."Housing For Employee" := EmployeeTbl."Housing For Employee"::"Not Housed";
+    LOWERCASE(stringArray[86]) = 'employer owned':
+        EmployeeTbl."Housing For Employee" := EmployeeTbl."Housing For Employee"::"Employer Owned";
+    LOWERCASE(stringArray[86]) = 'employer rented':
+        EmployeeTbl."Housing For Employee" := EmployeeTbl."Housing For Employee"::"Employer Rented";
+    LOWERCASE(stringArray[86]) = 'agricultural farm':
+        EmployeeTbl."Housing For Employee" := EmployeeTbl."Housing For Employee"::"Agricultural farm";
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl."Value of Quarters" := decimalArray[11];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[87] <> '' THEN BEGIN
+    HRJobsTbl.RESET;
+    HRJobsTbl.SETFILTER("Job Grade", stringArray[87] );
+    IF HRJobsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Employee Grade" := HRJobsTbl."Job Grade";
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Personal ID No." := stringArray[88];
+
+        // BASE DATA Types
+EmployeeTbl.PIN := stringArray[89];
+
+        // BASE DATA Types
+EmployeeTbl."Visa No." := stringArray[90];
+
+        // DT DATA Types
+IF stringArray[91] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Visa End Date",stringArray[91]);
+END;
+
+        // BASE DATA Types
+EmployeeTbl."Work Permit No." := stringArray[92];
+
+        // DT DATA Types
+IF stringArray[93] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Work Permit End Date",stringArray[93]);
+END;
+
+        // BASE DATA Types
+EmployeeTbl."Total Empl. Factor" := decimalArray[12];
+
+        // BASE DATA Types
+EmployeeTbl."NSSF No." := stringArray[94];
+
+        // BASE DATA Types
+EmployeeTbl."NHIF No." := stringArray[95];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Branch Code" := stringArray[96];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[97] <> '' THEN BEGIN
+    LocationTbl.RESET;
+    LocationTbl.SETFILTER(Code, stringArray[97] );
+    IF LocationTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Location Code" := LocationTbl.Code;
+    END;
+END;
+
+
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[98]) = ' ':
+        EmployeeTbl."Housing Eligibility" := EmployeeTbl."Housing Eligibility"::" ";
+    LOWERCASE(stringArray[98]) = 'house':
+        EmployeeTbl."Housing Eligibility" := EmployeeTbl."Housing Eligibility"::House;
+    LOWERCASE(stringArray[98]) = 'house allowance':
+        EmployeeTbl."Housing Eligibility" := EmployeeTbl."Housing Eligibility"::"House Allowance";
+    LOWERCASE(stringArray[98]) = 'both':
+        EmployeeTbl."Housing Eligibility" := EmployeeTbl."Housing Eligibility"::Both;
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl.Service := stringArray[99];
+
+        // BASE DATA Types
+EmployeeTbl.Driver := boolArray[3];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[100] <> '' THEN BEGIN
+    HRJobsTbl.RESET;
+    HRJobsTbl.SETFILTER("No.", stringArray[100] );
+    IF HRJobsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl.Position := HRJobsTbl."No.";
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Position Title" := stringArray[101];
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[102]) = 'single':
+        EmployeeTbl."Marital Status" := EmployeeTbl."Marital Status"::Single;
+    LOWERCASE(stringArray[102]) = 'married':
+        EmployeeTbl."Marital Status" := EmployeeTbl."Marital Status"::Married;
+    LOWERCASE(stringArray[102]) = 'separated':
+        EmployeeTbl."Marital Status" := EmployeeTbl."Marital Status"::Separated;
+    LOWERCASE(stringArray[102]) = 'divorced':
+        EmployeeTbl."Marital Status" := EmployeeTbl."Marital Status"::Divorced;
+    LOWERCASE(stringArray[102]) = 'widow(er)':
+        EmployeeTbl."Marital Status" := EmployeeTbl."Marital Status"::"Widow(er)";
+    LOWERCASE(stringArray[102]) = 'other':
+        EmployeeTbl."Marital Status" := EmployeeTbl."Marital Status"::Other;
+
+    END;
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[103]) = 'no':
+        EmployeeTbl."Physically Challenged" := EmployeeTbl."Physically Challenged"::No;
+    LOWERCASE(stringArray[103]) = 'yes':
+        EmployeeTbl."Physically Challenged" := EmployeeTbl."Physically Challenged"::Yes;
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl."Physically Challenged Details" := stringArray[104];
+
+        // BASE DATA Types
+EmployeeTbl."Physically Challenged Grade" := stringArray[105];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Physical File No." := stringArray[106];
+
+
+
+        // DT DATA Types
+IF stringArray[107] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Confirmation Date",stringArray[107]);
+END;
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[108]) = 'full time':
+        EmployeeTbl."Full Time/Part Time" := EmployeeTbl."Full Time/Part Time"::"Full Time";
+    LOWERCASE(stringArray[108]) = 'part time':
+        EmployeeTbl."Full Time/Part Time" := EmployeeTbl."Full Time/Part Time"::"Part Time";
+    LOWERCASE(stringArray[108]) = 'contract':
+        EmployeeTbl."Full Time/Part Time" := EmployeeTbl."Full Time/Part Time"::Contract;
+    LOWERCASE(stringArray[108]) = 'internship':
+        EmployeeTbl."Full Time/Part Time" := EmployeeTbl."Full Time/Part Time"::Internship;
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl.Age := stringArray[109];
+
+        // DT DATA Types
+IF stringArray[110] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Wedding Anniversary",stringArray[110]);
+END;
+
+        // DT DATA Types
+IF stringArray[111] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Contract End Date",stringArray[111]);
+END;
+
+        // DT DATA Types
+IF stringArray[112] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Exit Interview Date",stringArray[112]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[113] <> '' THEN BEGIN
+    InterviewerTbl.RESET;
+    InterviewerTbl.SETFILTER("No.", stringArray[113] );
+    IF InterviewerTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Exit Interview Done By" := InterviewerTbl."No.";
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Allow Re-Employment in Future" := boolArray[4];
+
+        // DT DATA Types
+IF stringArray[114] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Probation Expiry Date",stringArray[114]);
+END;
+
+        // BASE DATA Types
+EmployeeTbl."No of Days" := decimalArray[13];
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[115]) = 'cmt':
+        EmployeeTbl."Employee Type" := EmployeeTbl."Employee Type"::CMT;
+    LOWERCASE(stringArray[115]) = 'general':
+        EmployeeTbl."Employee Type" := EmployeeTbl."Employee Type"::General;
+    LOWERCASE(stringArray[115]) = 'apprentices':
+        EmployeeTbl."Employee Type" := EmployeeTbl."Employee Type"::Apprentices;
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl.Sanlam := decimalArray[14];
+
+        // BASE DATA Types
+EmployeeTbl.Liberty := decimalArray[15];
+
+        // BASE DATA Types
+EmployeeTbl.HELB := decimalArray[16];
+
+        // BASE DATA Types
+EmployeeTbl."Active Service Years" := stringArray[116];
+
+        // BASE DATA Types
+EmployeeTbl.Ages := integerArray[1];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Laptrust No" := stringArray[117];
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Group Employee?" := boolArray[5];
+
+        // DT DATA Types
+IF stringArray[118] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Date Promoted/Moved to Group",stringArray[118]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[119] <> '' THEN BEGIN
+    EmployeeGroupingLevelsTbl.RESET;
+    EmployeeGroupingLevelsTbl.SETFILTER(Type, 'ESG level' );
+    EmployeeGroupingLevelsTbl.SETFILTER(Code, stringArray[119] );
+    IF EmployeeGroupingLevelsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."ESG level" := EmployeeGroupingLevelsTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[120] <> '' THEN BEGIN
+    EmployeeGroupingLevelsTbl.RESET;
+    EmployeeGroupingLevelsTbl.SETFILTER(Type, 'Employee Function Group' );
+    EmployeeGroupingLevelsTbl.SETFILTER(Code, stringArray[120] );
+    IF EmployeeGroupingLevelsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Employee Function Group" := EmployeeGroupingLevelsTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[121] <> '' THEN BEGIN
+    EmployeeGroupingLevelsTbl.RESET;
+    EmployeeGroupingLevelsTbl.SETFILTER(Type, 'Employee Level' );
+    EmployeeGroupingLevelsTbl.SETFILTER(Code, stringArray[121] );
+    IF EmployeeGroupingLevelsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Employee Level" := EmployeeGroupingLevelsTbl.Code;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Separation Remarks" := stringArray[122];
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[123]) = ' ':
+        EmployeeTbl."Marital Status-d" := EmployeeTbl."Marital Status-d"::" ";
+    LOWERCASE(stringArray[123]) = 'single':
+        EmployeeTbl."Marital Status-d" := EmployeeTbl."Marital Status-d"::Single;
+    LOWERCASE(stringArray[123]) = 'married':
+        EmployeeTbl."Marital Status-d" := EmployeeTbl."Marital Status-d"::Married;
+
+    END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Birth Certificate No." := stringArray[124];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."National ID No.-d" := stringArray[125];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."PIN No.-d" := stringArray[126];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."NSSF No.-d" := stringArray[127];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."NHIF No.-d" := stringArray[128];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Passport No.-d" := stringArray[129];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Driving Licence No." := stringArray[130];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[131] <> '' THEN BEGIN
+    HRJobsTbl.RESET;
+    HRJobsTbl.SETFILTER(Status, 'Released' );
+    HRJobsTbl.SETFILTER("No.", stringArray[131] );
+    IF HRJobsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Job No.-d" := HRJobsTbl."No.";
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[132] <> '' THEN BEGIN
+    HRJobLookupValueTbl.RESET;
+    HRJobLookupValueTbl.SETFILTER(Option, 'Job Grade' );
+    HRJobLookupValueTbl.SETFILTER(Code, stringArray[132] );
+    IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Job Grade-d" := HRJobLookupValueTbl.Code;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Age-d" := stringArray[133];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[134] <> '' THEN BEGIN
+    BankCodeTbl.RESET;
+    BankCodeTbl.SETFILTER("Bank Code", stringArray[134] );
+    IF BankCodeTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Bank Code-d" := BankCodeTbl."Bank Code";
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Bank Name" := stringArray[135];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[136] <> '' THEN BEGIN
+    BankBranchTbl.RESET;
+    BankBranchTbl.SETFILTER("Bank Code", EmployeeTbl."Bank Code");
+    IF BankBranchTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Bank Branch Code-d" := BankBranchTbl."Bank Branch Code";
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Bank Branch Name" := stringArray[137];
+
+        // DT DATA Types
+IF stringArray[138] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Contract Start Date",stringArray[138]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[139] <> '' THEN BEGIN
+    HRLookupValuesTbl.RESET;
+    HRLookupValuesTbl.SETFILTER(Option, 'Nationality' );
+    HRLookupValuesTbl.SETFILTER(Code, stringArray[139] );
+    IF HRLookupValuesTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl.Citizenship := HRLookupValuesTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[140] <> '' THEN BEGIN
+    HRLookupValuesTbl.RESET;
+    HRLookupValuesTbl.SETFILTER(Option, 'Religion' );
+    HRLookupValuesTbl.SETFILTER(Code, stringArray[140] );
+    IF HRLookupValuesTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl.Religion := HRLookupValuesTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[141] <> '' THEN BEGIN
+    CountyTbl.RESET;
+    CountyTbl.SETFILTER(Code, stringArray[141] );
+    IF CountyTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."County Code" := CountyTbl.Code;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."County Name" := stringArray[142];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[143] <> '' THEN BEGIN
+    SubCountyTbl.RESET;
+    SubCountyTbl.SETFILTER("County Code", EmployeeTbl."County Code");
+    SubCountyTbl.SETFILTER("Sub-County Code", stringArray[143] );
+    IF SubCountyTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."SubCounty Code" := SubCountyTbl."Sub-County Code";
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."SubCounty Name" := stringArray[144];
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[145]) = ' ':
+        EmployeeTbl."Leave Status" := EmployeeTbl."Leave Status"::" ";
+    LOWERCASE(stringArray[145]) = 'on leave':
+        EmployeeTbl."Leave Status" := EmployeeTbl."Leave Status"::"On Leave";
+
+    END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[146] <> '' THEN BEGIN
+    HRBaseCalendarTbl.RESET;
+    HRBaseCalendarTbl.SETFILTER(Code, stringArray[146] );
+    IF HRBaseCalendarTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Leave Calendar" := HRBaseCalendarTbl.Code;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl.PasswordResetToken := stringArray[147];
+
+        // DT DATA Types
+IF stringArray[148] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl.PasswordResetTokenExpiry,stringArray[148]);
+END;
+
+        // BASE DATA Types
+EmployeeTbl."Portal Password" := stringArray[149];
+
+        // BASE DATA Types
+EmployeeTbl."Default Portal Password" := boolArray[6];
+
+        // DT DATA Types
+IF stringArray[150] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Contract Expiry Date",stringArray[150]);
+END;
+
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[152]) = 'no':
+        EmployeeTbl."Person Living with Disability" := EmployeeTbl."Person Living with Disability"::No;
+    LOWERCASE(stringArray[152]) = 'yes':
+        EmployeeTbl."Person Living with Disability" := EmployeeTbl."Person Living with Disability"::Yes;
+
+    END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[153] <> '' THEN BEGIN
+    HRLookupValuesTbl.RESET;
+    HRLookupValuesTbl.SETFILTER(Option, 'Ethnicity' );
+    HRLookupValuesTbl.SETFILTER(Code, stringArray[153] );
+    IF HRLookupValuesTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Ethnic Group" := HRLookupValuesTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Huduma No." := stringArray[154];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."HR Salary Notch" := stringArray[155];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+//EmployeeTbl."Supervisor Job Title" := stringArray[156];
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[157] <> '' THEN BEGIN
+    UserTbl.RESET;
+    UserTbl.SETFILTER("User Name", stringArray[157] );
+    IF UserTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."User ID" := UserTbl."User Name";
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[158] <> '' THEN BEGIN
+    EmployeePostingGroupTbl.RESET;
+    EmployeePostingGroupTbl.SETFILTER(Code, stringArray[158] );
+    IF EmployeePostingGroupTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Imprest Posting Group" := EmployeePostingGroupTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[159] <> '' THEN BEGIN
+    HRDepartmentTbl.RESET;
+    HRDepartmentTbl.SETFILTER(Code, stringArray[159] );
+    IF HRDepartmentTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl.Department := HRDepartmentTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[160] <> '' THEN BEGIN
+    HRLocationTbl.RESET;
+    HRLocationTbl.SETFILTER(Code, stringArray[160] );
+    IF HRLocationTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl.Location := HRLocationTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[161] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '3' );
+    DimensionValueTbl.SETFILTER("Dimension Value Type", 'Standard' );
+    DimensionValueTbl.SETFILTER(Blocked, 'No' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[161] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Shortcut Dimension 3 Code" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[162] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '4' );
+    DimensionValueTbl.SETFILTER("Dimension Value Type", 'Standard' );
+    DimensionValueTbl.SETFILTER(Blocked, 'No' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[162] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Shortcut Dimension 4 Code" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[163] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '5' );
+    DimensionValueTbl.SETFILTER("Dimension Value Type", 'Standard' );
+    DimensionValueTbl.SETFILTER(Blocked, 'No' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[163] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Shortcut Dimension 5 Code" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[164] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '6' );
+    DimensionValueTbl.SETFILTER("Dimension Value Type", 'Standard' );
+    DimensionValueTbl.SETFILTER(Blocked, 'No' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[164] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Shortcut Dimension 6 Code" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[165] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '7' );
+    DimensionValueTbl.SETFILTER("Dimension Value Type", 'Standard' );
+    DimensionValueTbl.SETFILTER(Blocked, 'No' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[165] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Shortcut Dimension 7 Code" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[166] <> '' THEN BEGIN
+    DimensionValueTbl.RESET;
+    DimensionValueTbl.SETFILTER("Global Dimension No.", '8' );
+    DimensionValueTbl.SETFILTER("Dimension Value Type", 'Standard' );
+    DimensionValueTbl.SETFILTER(Blocked, 'No' );
+    DimensionValueTbl.SETFILTER(Code, stringArray[166] );
+    IF DimensionValueTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Shortcut Dimension 8 Code" := DimensionValueTbl.Code;
+    END;
+END;
+
+
+
+        // DT DATA Types
+IF stringArray[167] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Driving License Expiry Date",stringArray[167]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Practice Cert No." := stringArray[168];
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Employement Years of Service" := stringArray[169];
+
+        // DT DATA Types
+IF stringArray[170] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Date of Leaving",stringArray[170]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[171] <> '' THEN BEGIN
+    HRJobsTbl.RESET;
+    HRJobsTbl.SETFILTER("No.", stringArray[171] );
+    IF HRJobsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Supervisor Job No." := HRJobsTbl."No.";
+        EmployeeTbl."Supervisor Job Title" := HRJobsTbl."Job Title";
+    END;
+END;
+
+
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[172]) = ' ':
+        EmployeeTbl."Termination Grounds" := EmployeeTbl."Termination Grounds"::" ";
+    LOWERCASE(stringArray[172]) = 'resignation':
+        EmployeeTbl."Termination Grounds" := EmployeeTbl."Termination Grounds"::Resignation;
+    LOWERCASE(stringArray[172]) = 'non-renewal of contract':
+        EmployeeTbl."Termination Grounds" := EmployeeTbl."Termination Grounds"::"Non-Renewal Of Contract";
+    LOWERCASE(stringArray[172]) = 'dismissal':
+        EmployeeTbl."Termination Grounds" := EmployeeTbl."Termination Grounds"::Dismissal;
+    LOWERCASE(stringArray[172]) = 'retirement':
+        EmployeeTbl."Termination Grounds" := EmployeeTbl."Termination Grounds"::Retirement;
+    LOWERCASE(stringArray[172]) = 'death':
+        EmployeeTbl."Termination Grounds" := EmployeeTbl."Termination Grounds"::Death;
+    LOWERCASE(stringArray[172]) = 'other':
+        EmployeeTbl."Termination Grounds" := EmployeeTbl."Termination Grounds"::Other;
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl."Total Leave Taken" := decimalArray[17];
+
+        // BASE DATA Types
+EmployeeTbl."Leave Balance" := decimalArray[18];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Leave Period Filter" := stringArray[173];
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Allocated Leave Days" := integerArray[2];
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[174]) = ' ':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::" ";
+    LOWERCASE(stringArray[174]) = 'resignation':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::Resignation;
+    LOWERCASE(stringArray[174]) = 'non-renewal of contract':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::"Non-Renewal Of Contract";
+    LOWERCASE(stringArray[174]) = 'dismissal':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::Dismissal;
+    LOWERCASE(stringArray[174]) = 'retirement':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::Retirement;
+    LOWERCASE(stringArray[174]) = 'deceased':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::Deceased;
+    LOWERCASE(stringArray[174]) = 'termination':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::Termination;
+    LOWERCASE(stringArray[174]) = 'contract ended':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::"Contract Ended";
+    LOWERCASE(stringArray[174]) = 'abscondment':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::Abscondment;
+    LOWERCASE(stringArray[174]) = 'appt. revoked':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::"Appt. Revoked";
+    LOWERCASE(stringArray[174]) = 'contract termination':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::"Contract Termination";
+    LOWERCASE(stringArray[174]) = 'retrenchment':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::Retrenchment;
+    LOWERCASE(stringArray[174]) = 'other':
+        EmployeeTbl."Reason For Leaving" := EmployeeTbl."Reason For Leaving"::Other;
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl."Reason For Leaving (Other)" := stringArray[175];
+
+        // BASE DATA Types
+EmployeeTbl."On Probation" := boolArray[7];
+
+
+        // DT DATA Types
+IF stringArray[177] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Probation Start Date",stringArray[177]);
+END;
+
+
+        // DT DATA Types
+IF stringArray[179] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Probation End date",stringArray[179]);
+END;
+
+        // DT DATA Types
+IF stringArray[180] <> '' THEN BEGIN
+    EVALUATE(EmployeeTbl."Reactivation Time",stringArray[180]);
+END;
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[181] <> '' THEN BEGIN
+    HRLeaveGroupsTbl.RESET;
+    HRLeaveGroupsTbl.SETFILTER(Code, stringArray[181] );
+    IF HRLeaveGroupsTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl."Leave Group" := HRLeaveGroupsTbl.Code;
+    END;
+END;
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Imprest Balance" := decimalArray[19];
+
+        // BASE DATA Types
+EmployeeTbl."Full Name" := stringArray[182];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+EmployeeTbl."Payroll Group Code" := stringArray[183];
+
+
+
+        // BASE DATA Types
+EmployeeTbl."Non Payroll Receipts" := decimalArray[20];
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[184]) = ' ':
+        EmployeeTbl.Responsibilty := EmployeeTbl.Responsibilty::" ";
+    LOWERCASE(stringArray[184]) = 'head of section':
+        EmployeeTbl.Responsibilty := EmployeeTbl.Responsibilty::"Head of Section";
+    LOWERCASE(stringArray[184]) = 'head of department':
+        EmployeeTbl.Responsibilty := EmployeeTbl.Responsibilty::"Head of Department";
+
+    END;
+
+        // OPTION DATA Types
+CASE TRUE OF 
+    LOWERCASE(stringArray[185]) = ' ':
+        EmployeeTbl.Level := EmployeeTbl.Level::" ";
+    LOWERCASE(stringArray[185]) = 'director':
+        EmployeeTbl.Level := EmployeeTbl.Level::Director;
+    LOWERCASE(stringArray[185]) = 'cmt':
+        EmployeeTbl.Level := EmployeeTbl.Level::CMT;
+    LOWERCASE(stringArray[185]) = 'management':
+        EmployeeTbl.Level := EmployeeTbl.Level::Management;
+    LOWERCASE(stringArray[185]) = 'management 1':
+        EmployeeTbl.Level := EmployeeTbl.Level::"Management 1";
+    LOWERCASE(stringArray[185]) = 'key support':
+        EmployeeTbl.Level := EmployeeTbl.Level::"Key Support";
+    LOWERCASE(stringArray[185]) = 'support':
+        EmployeeTbl.Level := EmployeeTbl.Level::Support;
+    LOWERCASE(stringArray[185]) = 'unionisable':
+        EmployeeTbl.Level := EmployeeTbl.Level::Unionisable;
+    LOWERCASE(stringArray[185]) = 'intern':
+        EmployeeTbl.Level := EmployeeTbl.Level::Intern;
+
+    END;
+
+        // BASE DATA Types
+EmployeeTbl."Can Edit Job Targets" := boolArray[8];
+
+        // BASE DATA Types
+EmployeeTbl."Substitute Not Required" := boolArray[9];
+
+        // BASE DATA Types
+EmployeeTbl.Confirmed := boolArray[10];
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[186] <> '' THEN BEGIN
+    UserRolesTbl.RESET;
+    UserRolesTbl.SETFILTER(Code, stringArray[186] );
+    IF UserRolesTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl.Rank := UserRolesTbl.Code;
+    END;
+END;
+
+
+
+        // CODE DATA Types
+// Code Types are messy - Kindly, Review.
+IF stringArray[187] <> '' THEN BEGIN
+    HODTbl.RESET;
+    HODTbl.SETFILTER("No.", stringArray[187] );
+    IF HODTbl.FINDFIRST THEN BEGIN
+        EmployeeTbl.HOD := HODTbl."No.";
+    END;
+END;
+
+
+success := EmployeeTbl.MODIFY;
+IF success THEN BEGIN
+  Result := EmployeeSerializer(EmployeeTbl);
+  Result := ResponseFormat(200, Result, 'Employee was updated successfully.');
+END ELSE BEGIN
+  Result := ResponseFormat(500, '', 'Employee was NOT updated.');
+END;
+ 
+[External] DeleteEmployee(EmployeeID : Text) Result : Text
+EmployeeTbl.RESET;
 EmployeeTbl.SETFILTER("No.", EmployeeID);
 IF EmployeeTbl.FINDFIRST THEN BEGIN
-  EmployeeTbl."First Name" := FirstName;
-  EmployeeTbl."Middle Name" := MiddleName;
-  EmployeeTbl."Last Name" := LastName;
-  CASE TRUE OF
-    LOWERCASE(Gender)= 'female':
-      EmployeeTbl.Gender := EmployeeTbl.Gender::Female;
-    LOWERCASE(Gender)= 'male':
-      EmployeeTbl.Gender := EmployeeTbl.Gender::Male;
-  END;
-  EmployeeTbl."Job Title" := JobTitle;
+   EmployeeTbl.DELETE;
+   
+   Result := ResponseFormat(200, '', 'Employee was deleted successfully');
 
-  IF ManagerNo <> '' THEN BEGIN
-    ManagerTbl.SETFILTER("No.", ManagerNo);
-    IF ManagerTbl.FINDFIRST THEN
-      EmployeeTbl."Manager No." := ManagerTbl."No.";
+END ELSE  BEGIN
+  Result :=  EmptyEmployee();
+  Result := ResponseFormat(404, Result, 'Not Found.');
   END;
 
-  EmployeeTbl.Status := EmployeeTbl.Status::Active;
-
-  EmployeeTbl."E-Mail" := EMail;
-  EmployeeTbl."Phone No." := PhoneNo;
-
-  EmployeeTbl.MODIFY;
-  END;
-Result := EmployeeSerializer(EmployeeTbl);
-
-[External] DeleteEmployee(EmployeeID : Text) Result : Text
-EmployeeTbl.RESET();
-EmployeeTbl.SETFILTER("No.", EmployeeID);
-IF EmployeeTbl.FINDFIRST THEN
-  EmployeeTbl.DELETE();
-
-Result := '{"message":"Deletion successfull"}';
-
-LOCAL EmployeeSerializer(EmployeeRec : Record Employee) Result : Text
-Result := '{';
-Result+='"No":"'+FORMAT(EmployeeRec."No.")+'",';
-Result+='"FullName":"'+FORMAT(EmployeeRec."Full Name")+'",';
-Result+='"Gender":"'+FORMAT(EmployeeRec.Gender)+'",';
-Result+='"Title":"'+FORMAT(EmployeeRec.Title)+'",';
-Result+='"MaritalStatus":"'+FORMAT(EmployeeRec."Marital Status")+'",';
-Result+='"NationalID":"'+FORMAT(EmployeeRec."National ID")+'",';
-Result+='"NSSFNo":"'+FORMAT(EmployeeRec."NSSF No.")+'",';
-Result+='"NHIFNo":"'+FORMAT(EmployeeRec."NHIF No.")+'",';
-Result+='"PIN":"'+FORMAT(EmployeeRec.PIN)+'",';
-Result+='"Address":"'+FORMAT(EmployeeRec.Address)+'",';
-Result+='"City":"'+FORMAT(EmployeeRec.City)+'",';
-Result+='"CountryRegionCode":"'+FORMAT(EmployeeRec."Country/Region Code")+'",';
-Result+='"MobilePhoneNo":"'+FORMAT(EmployeeRec."Mobile Phone No.")+'",';
-Result+='"CompanyEMail":"'+FORMAT(EmployeeRec."Company E-Mail")+'",';
-Result+='"EMail":"'+FORMAT(EmployeeRec."E-Mail")+'",';
-Result+='"JobNo":"'+FORMAT(EmployeeRec."Job No.-d")+'",';
-Result+='"JobTitle":"'+FORMAT(EmployeeRec."Job Title")+'",';
-Result+='"Age":"'+FORMAT(EmployeeRec.Age)+'",';
-Result+='"ProbationExpiryDate":"'+FORMAT(EmployeeRec."Probation Expiry Date")+'",';
-Result+='"ContractExpiryDate":"'+FORMAT(EmployeeRec."Contract End Date")+'",';
-Result+='"Service":"'+FORMAT(EmployeeRec.Service)+'",';
-Result+='"Religion":"'+FORMAT(EmployeeRec.Religion)+'",';
-Result+='"Status":"'+FORMAT(EmployeeRec.Status)+'",';
-Result+='"PhoneNo":"'+FORMAT(EmployeeRec."Phone No.")+'",';
-Result+='}';
+LOCAL EmployeeSerializer(EmployeeTbl : Record Employee) Result : Text
+// Create the JsonBoolean function -> converts CAL Bools to 'true' or 'false'
+// string - 187
+// bool - 10
+// decimal - 20
+// integer - 2
+Result := '{'; 
+Result += '\"No\":\"'+FORMAT(EmployeeTbl."No.")+'\",';
+Result += '\"FirstName\":\"'+FORMAT(EmployeeTbl."First Name")+'\",';
+Result += '\"MiddleName\":\"'+FORMAT(EmployeeTbl."Middle Name")+'\",';
+Result += '\"LastName\":\"'+FORMAT(EmployeeTbl."Last Name")+'\",';
+Result += '\"Initials\":\"'+FORMAT(EmployeeTbl.Initials)+'\",';
+Result += '\"JobTitle\":\"'+FORMAT(EmployeeTbl."Job Title")+'\",';
+Result += '\"SearchName\":\"'+FORMAT(EmployeeTbl."Search Name")+'\",';
+Result += '\"Address\":\"'+FORMAT(EmployeeTbl.Address)+'\",';
+Result += '\"Address2\":\"'+FORMAT(EmployeeTbl."Address 2")+'\",';
+Result += '\"City\":\"'+FORMAT(EmployeeTbl.City)+'\",';
+Result += '\"PostCode\":\"'+FORMAT(EmployeeTbl."Post Code")+'\",';
+Result += '\"County\":\"'+FORMAT(EmployeeTbl.County)+'\",';
+Result += '\"PhoneNo\":\"'+FORMAT(EmployeeTbl."Phone No.")+'\",';
+Result += '\"MobilePhoneNo\":\"'+FORMAT(EmployeeTbl."Mobile Phone No.")+'\",';
+Result += '\"EMail\":\"'+FORMAT(EmployeeTbl."E-Mail")+'\",';
+Result += '\"AltAddressCode\":\"'+FORMAT(EmployeeTbl."Alt. Address Code")+'\",';
+Result += '\"AltAddressStartDate\":\"'+FORMAT(EmployeeTbl."Alt. Address Start Date")+'\",';
+Result += '\"AltAddressEndDate\":\"'+FORMAT(EmployeeTbl."Alt. Address End Date")+'\",';
+Result += '\"Picture\":\"'+FORMAT(EmployeeTbl.Picture)+'\",';
+Result += '\"BirthDate\":\"'+FORMAT(EmployeeTbl."Birth Date")+'\",';
+Result += '\"SocialSecurityNo\":\"'+FORMAT(EmployeeTbl."Social Security No.")+'\",';
+Result += '\"UnionCode\":\"'+FORMAT(EmployeeTbl."Union Code")+'\",';
+Result += '\"UnionMembershipNo\":\"'+FORMAT(EmployeeTbl."Union Membership No.")+'\",';
+Result += '\"Gender\":\"'+FORMAT(EmployeeTbl.Gender)+'\",';
+Result += '\"CountryRegionCode\":\"'+FORMAT(EmployeeTbl."Country/Region Code")+'\",';
+Result += '\"ManagerNo\":\"'+FORMAT(EmployeeTbl."Manager No.")+'\",';
+Result += '\"EmplymtContractCode\":\"'+FORMAT(EmployeeTbl."Emplymt. Contract Code")+'\",';
+Result += '\"StatisticsGroupCode\":\"'+FORMAT(EmployeeTbl."Statistics Group Code")+'\",';
+Result += '\"EmploymentDate\":\"'+FORMAT(EmployeeTbl."Employment Date")+'\",';
+Result += '\"Status\":\"'+FORMAT(EmployeeTbl.Status)+'\",';
+Result += '\"InactiveDate\":\"'+FORMAT(EmployeeTbl."Inactive Date")+'\",';
+Result += '\"CauseofInactivityCode\":\"'+FORMAT(EmployeeTbl."Cause of Inactivity Code")+'\",';
+Result += '\"TerminationDate\":\"'+FORMAT(EmployeeTbl."Termination Date")+'\",';
+Result += '\"GroundsforTermCode\":\"'+FORMAT(EmployeeTbl."Grounds for Term. Code")+'\",';
+Result += '\"GlobalDimension1Code\":\"'+FORMAT(EmployeeTbl."Global Dimension 1 Code")+'\",';
+Result += '\"GlobalDimension2Code\":\"'+FORMAT(EmployeeTbl."Global Dimension 2 Code")+'\",';
+Result += '\"ResourceNo\":\"'+FORMAT(EmployeeTbl."Resource No.")+'\",';
+Result += '\"Comment\":'+JsonBoolean(EmployeeTbl.Comment)+',';
+Result += '\"LastDateModified\":\"'+FORMAT(EmployeeTbl."Last Date Modified")+'\",';
+Result += '\"DateFilter\":\"'+FORMAT(EmployeeTbl."Date Filter")+'\",';
+Result += '\"GlobalDimension1Filter\":\"'+FORMAT(EmployeeTbl."Global Dimension 1 Filter")+'\",';
+Result += '\"GlobalDimension2Filter\":\"'+FORMAT(EmployeeTbl."Global Dimension 2 Filter")+'\",';
+Result += '\"CauseofAbsenceFilter\":\"'+FORMAT(EmployeeTbl."Cause of Absence Filter")+'\",';
+Result += '\"TotalAbsenceBase\":'+FORMAT(EmployeeTbl."Total Absence (Base)", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"Extension\":\"'+FORMAT(EmployeeTbl.Extension)+'\",';
+Result += '\"EmployeeNoFilter\":\"'+FORMAT(EmployeeTbl."Employee No. Filter")+'\",';
+Result += '\"Pager\":\"'+FORMAT(EmployeeTbl.Pager)+'\",';
+Result += '\"FaxNo\":\"'+FORMAT(EmployeeTbl."Fax No.")+'\",';
+Result += '\"CompanyEMail\":\"'+FORMAT(EmployeeTbl."Company E-Mail")+'\",';
+Result += '\"Title\":\"'+FORMAT(EmployeeTbl.Title)+'\",';
+Result += '\"SalespersPurchCode\":\"'+FORMAT(EmployeeTbl."Salespers./Purch. Code")+'\",';
+Result += '\"NoSeries\":\"'+FORMAT(EmployeeTbl."No. Series")+'\",';
+Result += '\"LastModifiedDateTime\":\"'+FORMAT(EmployeeTbl."Last Modified Date Time")+'\",';
+Result += '\"EmployeePostingGroup\":\"'+FORMAT(EmployeeTbl."Employee Posting Group")+'\",';
+Result += '\"BankBranchNo\":\"'+FORMAT(EmployeeTbl."Bank Branch No.")+'\",';
+Result += '\"BankAccountNo1\":\"'+FORMAT(EmployeeTbl."Bank Account No1.")+'\",';
+Result += '\"IBAN\":\"'+FORMAT(EmployeeTbl.IBAN)+'\",';
+Result += '\"Balance\":'+FORMAT(EmployeeTbl.Balance, 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"SWIFTCode\":\"'+FORMAT(EmployeeTbl."SWIFT Code")+'\",';
+Result += '\"ApplicationMethod\":\"'+FORMAT(EmployeeTbl."Application Method")+'\",';
+Result += '\"Image\":\"'+FORMAT(EmployeeTbl.Image)+'\",';
+Result += '\"PrivacyBlocked\":'+JsonBoolean(EmployeeTbl."Privacy Blocked")+',';
+Result += '\"CostCenterCode\":\"'+FORMAT(EmployeeTbl."Cost Center Code")+'\",';
+Result += '\"CostObjectCode\":\"'+FORMAT(EmployeeTbl."Cost Object Code")+'\",';
+Result += '\"Id\":\"'+FORMAT(EmployeeTbl.Id)+'\",';
+Result += '\"EmpBranchCode\":\"'+FORMAT(EmployeeTbl."Emp Branch Code")+'\",';
+Result += '\"BankBranchCode\":\"'+FORMAT(EmployeeTbl."Bank Branch Code")+'\",';
+Result += '\"NationalID\":\"'+FORMAT(EmployeeTbl."National ID")+'\",';
+Result += '\"CustomerNo\":\"'+FORMAT(EmployeeTbl."Customer No.")+'\",';
+Result += '\"NameofOldEmployer\":\"'+FORMAT(EmployeeTbl."Name of Old Employer")+'\",';
+Result += '\"AddressofOldEmployer\":\"'+FORMAT(EmployeeTbl."Address of Old Employer")+'\",';
+Result += '\"NameofNewEmployer\":\"'+FORMAT(EmployeeTbl."Name of New Employer")+'\",';
+Result += '\"AddressofNewEmployer\":\"'+FORMAT(EmployeeTbl."Address of New Employer")+'\",';
+Result += '\"CalculationScheme\":\"'+FORMAT(EmployeeTbl."Calculation Scheme")+'\",';
+Result += '\"ModeofPayment\":\"'+FORMAT(EmployeeTbl."Mode of Payment")+'\",';
+Result += '\"BankCode\":\"'+FORMAT(EmployeeTbl."Bank Code")+'\",';
+Result += '\"BankAccountNo\":\"'+FORMAT(EmployeeTbl."Bank Account No")+'\",';
+Result += '\"EDCodeFilter\":\"'+FORMAT(EmployeeTbl."ED Code Filter")+'\",';
+Result += '\"PeriodFilter\":\"'+FORMAT(EmployeeTbl."Period Filter")+'\",';
+Result += '\"Amount\":'+FORMAT(EmployeeTbl.Amount, 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"CalculationGroupFilter\":\"'+FORMAT(EmployeeTbl."Calculation Group Filter")+'\",';
+Result += '\"Loans\":'+FORMAT(EmployeeTbl.Loans, 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"PostingGroup\":\"'+FORMAT(EmployeeTbl."Posting Group")+'\",';
+Result += '\"SalaryScale\":\"'+FORMAT(EmployeeTbl."Salary Scale")+'\",';
+Result += '\"ScaleStep\":\"'+FORMAT(EmployeeTbl."Scale Step")+'\",';
+Result += '\"Paystation\":\"'+FORMAT(EmployeeTbl.Paystation)+'\",';
+Result += '\"FixedPay\":'+FORMAT(EmployeeTbl."Fixed Pay", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"BasicPay\":\"'+FORMAT(EmployeeTbl."Basic Pay")+'\",';
+Result += '\"HourlyRate\":'+FORMAT(EmployeeTbl."Hourly Rate", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"DailyRate\":'+FORMAT(EmployeeTbl."Daily Rate", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"AmountToDate\":'+FORMAT(EmployeeTbl."Amount To Date", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"PayrollCode\":\"'+FORMAT(EmployeeTbl."Payroll Code")+'\",';
+Result += '\"MembershipNo\":\"'+FORMAT(EmployeeTbl."Membership No.")+'\",';
+Result += '\"AmountLCY\":'+FORMAT(EmployeeTbl."Amount (LCY)", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"AmountToDateLCY\":'+FORMAT(EmployeeTbl."Amount To Date (LCY)", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"CurrencyFilter\":\"'+FORMAT(EmployeeTbl."Currency Filter")+'\",';
+Result += '\"BasicPayCurrency\":\"'+FORMAT(EmployeeTbl."Basic Pay Currency")+'\",';
+Result += '\"HousingForEmployee\":\"'+FORMAT(EmployeeTbl."Housing For Employee")+'\",';
+Result += '\"ValueofQuarters\":'+FORMAT(EmployeeTbl."Value of Quarters", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"EmployeeGrade\":\"'+FORMAT(EmployeeTbl."Employee Grade")+'\",';
+Result += '\"PersonalIDNo\":\"'+FORMAT(EmployeeTbl."Personal ID No.")+'\",';
+Result += '\"PIN\":\"'+FORMAT(EmployeeTbl.PIN)+'\",';
+Result += '\"VisaNo\":\"'+FORMAT(EmployeeTbl."Visa No.")+'\",';
+Result += '\"VisaEndDate\":\"'+FORMAT(EmployeeTbl."Visa End Date")+'\",';
+Result += '\"WorkPermitNo\":\"'+FORMAT(EmployeeTbl."Work Permit No.")+'\",';
+Result += '\"WorkPermitEndDate\":\"'+FORMAT(EmployeeTbl."Work Permit End Date")+'\",';
+Result += '\"TotalEmplFactor\":'+FORMAT(EmployeeTbl."Total Empl. Factor", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"NSSFNo\":\"'+FORMAT(EmployeeTbl."NSSF No.")+'\",';
+Result += '\"NHIFNo\":\"'+FORMAT(EmployeeTbl."NHIF No.")+'\",';
+Result += '\"BranchCode\":\"'+FORMAT(EmployeeTbl."Branch Code")+'\",';
+Result += '\"LocationCode\":\"'+FORMAT(EmployeeTbl."Location Code")+'\",';
+Result += '\"HousingEligibility\":\"'+FORMAT(EmployeeTbl."Housing Eligibility")+'\",';
+Result += '\"Service\":\"'+FORMAT(EmployeeTbl.Service)+'\",';
+Result += '\"Driver\":'+JsonBoolean(EmployeeTbl.Driver)+',';
+Result += '\"Position\":\"'+FORMAT(EmployeeTbl.Position)+'\",';
+Result += '\"PositionTitle\":\"'+FORMAT(EmployeeTbl."Position Title")+'\",';
+Result += '\"MaritalStatus\":\"'+FORMAT(EmployeeTbl."Marital Status")+'\",';
+Result += '\"PhysicallyChallenged\":\"'+FORMAT(EmployeeTbl."Physically Challenged")+'\",';
+Result += '\"PhysicallyChallengedDetails\":\"'+FORMAT(EmployeeTbl."Physically Challenged Details")+'\",';
+Result += '\"PhysicallyChallengedGrade\":\"'+FORMAT(EmployeeTbl."Physically Challenged Grade")+'\",';
+Result += '\"PhysicalFileNo\":\"'+FORMAT(EmployeeTbl."Physical File No.")+'\",';
+Result += '\"ConfirmationDate\":\"'+FORMAT(EmployeeTbl."Confirmation Date")+'\",';
+Result += '\"FullTimePartTime\":\"'+FORMAT(EmployeeTbl."Full Time/Part Time")+'\",';
+Result += '\"Age\":\"'+FORMAT(EmployeeTbl.Age)+'\",';
+Result += '\"WeddingAnniversary\":\"'+FORMAT(EmployeeTbl."Wedding Anniversary")+'\",';
+Result += '\"ContractEndDate\":\"'+FORMAT(EmployeeTbl."Contract End Date")+'\",';
+Result += '\"ExitInterviewDate\":\"'+FORMAT(EmployeeTbl."Exit Interview Date")+'\",';
+Result += '\"ExitInterviewDoneBy\":\"'+FORMAT(EmployeeTbl."Exit Interview Done By")+'\",';
+Result += '\"AllowReEmploymentinFuture\":'+JsonBoolean(EmployeeTbl."Allow Re-Employment in Future")+',';
+Result += '\"ProbationExpiryDate\":\"'+FORMAT(EmployeeTbl."Probation Expiry Date")+'\",';
+Result += '\"NoofDays\":'+FORMAT(EmployeeTbl."No of Days", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"EmployeeType\":\"'+FORMAT(EmployeeTbl."Employee Type")+'\",';
+Result += '\"Sanlam\":'+FORMAT(EmployeeTbl.Sanlam, 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"Liberty\":'+FORMAT(EmployeeTbl.Liberty, 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"HELB\":'+FORMAT(EmployeeTbl.HELB, 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"ActiveServiceYears\":\"'+FORMAT(EmployeeTbl."Active Service Years")+'\",';
+Result += '\"Ages\":'+FORMAT(EmployeeTbl.Ages)+',';
+Result += '\"LaptrustNo\":\"'+FORMAT(EmployeeTbl."Laptrust No")+'\",';
+Result += '\"GroupEmployee\":'+JsonBoolean(EmployeeTbl."Group Employee?")+',';
+Result += '\"DatePromotedMovedtoGroup\":\"'+FORMAT(EmployeeTbl."Date Promoted/Moved to Group")+'\",';
+Result += '\"ESGlevel\":\"'+FORMAT(EmployeeTbl."ESG level")+'\",';
+Result += '\"EmployeeFunctionGroup\":\"'+FORMAT(EmployeeTbl."Employee Function Group")+'\",';
+Result += '\"EmployeeLevel\":\"'+FORMAT(EmployeeTbl."Employee Level")+'\",';
+Result += '\"SeparationRemarks\":\"'+FORMAT(EmployeeTbl."Separation Remarks")+'\",';
+Result += '\"MaritalStatusd\":\"'+FORMAT(EmployeeTbl."Marital Status-d")+'\",';
+Result += '\"BirthCertificateNo\":\"'+FORMAT(EmployeeTbl."Birth Certificate No.")+'\",';
+Result += '\"NationalIDNod\":\"'+FORMAT(EmployeeTbl."National ID No.-d")+'\",';
+Result += '\"PINNod\":\"'+FORMAT(EmployeeTbl."PIN No.-d")+'\",';
+Result += '\"NSSFNod\":\"'+FORMAT(EmployeeTbl."NSSF No.-d")+'\",';
+Result += '\"NHIFNod\":\"'+FORMAT(EmployeeTbl."NHIF No.-d")+'\",';
+Result += '\"PassportNod\":\"'+FORMAT(EmployeeTbl."Passport No.-d")+'\",';
+Result += '\"DrivingLicenceNo\":\"'+FORMAT(EmployeeTbl."Driving Licence No.")+'\",';
+Result += '\"JobNod\":\"'+FORMAT(EmployeeTbl."Job No.-d")+'\",';
+Result += '\"JobGraded\":\"'+FORMAT(EmployeeTbl."Job Grade-d")+'\",';
+Result += '\"Aged\":\"'+FORMAT(EmployeeTbl."Age-d")+'\",';
+Result += '\"BankCoded\":\"'+FORMAT(EmployeeTbl."Bank Code-d")+'\",';
+Result += '\"BankName\":\"'+FORMAT(EmployeeTbl."Bank Name")+'\",';
+Result += '\"BankBranchCoded\":\"'+FORMAT(EmployeeTbl."Bank Branch Code-d")+'\",';
+Result += '\"BankBranchName\":\"'+FORMAT(EmployeeTbl."Bank Branch Name")+'\",';
+Result += '\"ContractStartDate\":\"'+FORMAT(EmployeeTbl."Contract Start Date")+'\",';
+Result += '\"Citizenship\":\"'+FORMAT(EmployeeTbl.Citizenship)+'\",';
+Result += '\"Religion\":\"'+FORMAT(EmployeeTbl.Religion)+'\",';
+Result += '\"CountyCode\":\"'+FORMAT(EmployeeTbl."County Code")+'\",';
+Result += '\"CountyName\":\"'+FORMAT(EmployeeTbl."County Name")+'\",';
+Result += '\"SubCountyCode\":\"'+FORMAT(EmployeeTbl."SubCounty Code")+'\",';
+Result += '\"SubCountyName\":\"'+FORMAT(EmployeeTbl."SubCounty Name")+'\",';
+Result += '\"LeaveStatus\":\"'+FORMAT(EmployeeTbl."Leave Status")+'\",';
+Result += '\"LeaveCalendar\":\"'+FORMAT(EmployeeTbl."Leave Calendar")+'\",';
+Result += '\"PasswordResetToken\":\"'+FORMAT(EmployeeTbl.PasswordResetToken)+'\",';
+Result += '\"PasswordResetTokenExpiry\":\"'+FORMAT(EmployeeTbl.PasswordResetTokenExpiry)+'\",';
+Result += '\"PortalPassword\":\"'+FORMAT(EmployeeTbl."Portal Password")+'\",';
+Result += '\"DefaultPortalPassword\":'+JsonBoolean(EmployeeTbl."Default Portal Password")+',';
+Result += '\"ContractExpiryDate\":\"'+FORMAT(EmployeeTbl."Contract Expiry Date")+'\",';
+Result += '\"EmployeeSignature\":\"'+FORMAT(EmployeeTbl."Employee Signature")+'\",';
+Result += '\"PersonLivingwithDisability\":\"'+FORMAT(EmployeeTbl."Person Living with Disability")+'\",';
+Result += '\"EthnicGroup\":\"'+FORMAT(EmployeeTbl."Ethnic Group")+'\",';
+Result += '\"HudumaNo\":\"'+FORMAT(EmployeeTbl."Huduma No.")+'\",';
+Result += '\"HRSalaryNotch\":\"'+FORMAT(EmployeeTbl."HR Salary Notch")+'\",';
+Result += '\"SupervisorJobTitle\":\"'+FORMAT(EmployeeTbl."Supervisor Job Title")+'\",';
+Result += '\"UserID\":\"'+FORMAT(EmployeeTbl."User ID")+'\",';
+Result += '\"ImprestPostingGroup\":\"'+FORMAT(EmployeeTbl."Imprest Posting Group")+'\",';
+Result += '\"Department\":\"'+FORMAT(EmployeeTbl.Department)+'\",';
+Result += '\"Location\":\"'+FORMAT(EmployeeTbl.Location)+'\",';
+Result += '\"ShortcutDimension3Code\":\"'+FORMAT(EmployeeTbl."Shortcut Dimension 3 Code")+'\",';
+Result += '\"ShortcutDimension4Code\":\"'+FORMAT(EmployeeTbl."Shortcut Dimension 4 Code")+'\",';
+Result += '\"ShortcutDimension5Code\":\"'+FORMAT(EmployeeTbl."Shortcut Dimension 5 Code")+'\",';
+Result += '\"ShortcutDimension6Code\":\"'+FORMAT(EmployeeTbl."Shortcut Dimension 6 Code")+'\",';
+Result += '\"ShortcutDimension7Code\":\"'+FORMAT(EmployeeTbl."Shortcut Dimension 7 Code")+'\",';
+Result += '\"ShortcutDimension8Code\":\"'+FORMAT(EmployeeTbl."Shortcut Dimension 8 Code")+'\",';
+Result += '\"DrivingLicenseExpiryDate\":\"'+FORMAT(EmployeeTbl."Driving License Expiry Date")+'\",';
+Result += '\"PracticeCertNo\":\"'+FORMAT(EmployeeTbl."Practice Cert No.")+'\",';
+Result += '\"EmployementYearsofService\":\"'+FORMAT(EmployeeTbl."Employement Years of Service")+'\",';
+Result += '\"DateofLeaving\":\"'+FORMAT(EmployeeTbl."Date of Leaving")+'\",';
+Result += '\"SupervisorJobNo\":\"'+FORMAT(EmployeeTbl."Supervisor Job No.")+'\",';
+Result += '\"TerminationGrounds\":\"'+FORMAT(EmployeeTbl."Termination Grounds")+'\",';
+Result += '\"TotalLeaveTaken\":'+FORMAT(EmployeeTbl."Total Leave Taken", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"LeaveBalance\":'+FORMAT(EmployeeTbl."Leave Balance", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"LeavePeriodFilter\":\"'+FORMAT(EmployeeTbl."Leave Period Filter")+'\",';
+Result += '\"AllocatedLeaveDays\":'+FORMAT(EmployeeTbl."Allocated Leave Days")+',';
+Result += '\"ReasonForLeaving\":\"'+FORMAT(EmployeeTbl."Reason For Leaving")+'\",';
+Result += '\"ReasonForLeavingOther\":\"'+FORMAT(EmployeeTbl."Reason For Leaving (Other)")+'\",';
+Result += '\"OnProbation\":'+JsonBoolean(EmployeeTbl."On Probation")+',';
+Result += '\"ContractPeriod\":\"'+FORMAT(EmployeeTbl."Contract Period")+'\",';
+Result += '\"ProbationStartDate\":\"'+FORMAT(EmployeeTbl."Probation Start Date")+'\",';
+Result += '\"ProbationPeriod\":\"'+FORMAT(EmployeeTbl."Probation Period")+'\",';
+Result += '\"ProbationEnddate\":\"'+FORMAT(EmployeeTbl."Probation End date")+'\",';
+Result += '\"ReactivationTime\":\"'+FORMAT(EmployeeTbl."Reactivation Time")+'\",';
+Result += '\"LeaveGroup\":\"'+FORMAT(EmployeeTbl."Leave Group")+'\",';
+Result += '\"ImprestBalance\":'+FORMAT(EmployeeTbl."Imprest Balance", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"FullName\":\"'+FORMAT(EmployeeTbl."Full Name")+'\",';
+Result += '\"PayrollGroupCode\":\"'+FORMAT(EmployeeTbl."Payroll Group Code")+'\",';
+Result += '\"NonPayrollReceipts\":'+FORMAT(EmployeeTbl."Non Payroll Receipts", 12, '<Sign><Integer><Decimals>' )+',';
+Result += '\"Responsibilty\":\"'+FORMAT(EmployeeTbl.Responsibilty)+'\",';
+Result += '\"Level\":\"'+FORMAT(EmployeeTbl.Level)+'\",';
+Result += '\"CanEditJobTargets\":'+JsonBoolean(EmployeeTbl."Can Edit Job Targets")+',';
+Result += '\"SubstituteNotRequired\":'+JsonBoolean(EmployeeTbl."Substitute Not Required")+',';
+Result += '\"Confirmed\":'+JsonBoolean(EmployeeTbl.Confirmed)+',';
+Result += '\"Rank\":\"'+FORMAT(EmployeeTbl.Rank)+'\",';
+Result += '\"HOD\":\"'+FORMAT(EmployeeTbl.HOD)+'\"';
+Result += '}';
 
 LOCAL EmptyEmployee() Result : Text
-// EmployeeTbl.INIT;
-// Result := EmployeeSerializer(EmployeeTbl);
-Result := '{';
-Result+='"No":"",';
-Result+='"FullName":"",';
-Result+='"Gender":"",';
-Result+='"Title":"",';
-Result+='"MaritalStatus":"",';
-Result+='"NationalID":"",';
-Result+='"NSSFNo":"",';
-Result+='"NHIFNo":"",';
-Result+='"PIN":"",';
-Result+='"Address":"",';
-Result+='"City":"",';
-Result+='"CountryRegionCode":"",';
-Result+='"MobilePhoneNo":"",';
-Result+='"CompanyEMail":"",';
-Result+='"EMail":"",';
-Result+='"JobNo":"",';
-Result+='"JobTitle":"",';
-Result+='"Age":"",';
-Result+='"ProbationExpiryDate":"",';
-Result+='"ContractExpiryDate":"",';
-Result+='"Service":"",';
-Result+='"Religion":"",';
-Result+='"Status":"",';
-Result+='"PhoneNo":"",';
-Result+='}';
+EmployeeTbl.INIT;
+Result := EmployeeSerializer(EmployeeTbl);

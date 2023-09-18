@@ -3,7 +3,6 @@
     public class HRJobGradeLevelModel
     {
 
-
         public string JobGrade { get; set; }
 
         public string JobGradeLevel { get; set; }
