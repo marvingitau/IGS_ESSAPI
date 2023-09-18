@@ -1,0 +1,1192 @@
+Documentation()
+{
+
+  ASSUMPTION: 
+    For fields that serve as foreign keys a search of the consumers's entry must first be made. 
+    We assume these fields will be filled appropritely by the consumer such as no error arises when performing the search.
+    This is constrain applies only during creation. 
+
+    However if an parent item is to deleted, it's child will will have an automatically null value. 
+    This field should be refilled upon the next edit.
+
+}
+
+OnRun()
+
+LOCAL ResponseFormat(status : Integer;payload : Text;message : Text) Result : Text
+Result := '{';
+Result += '"Status":'+FORMAT(status)+',';
+IF payload<>'' THEN 
+  Result += '"Payload":"'+FORMAT(payload)+'",';
+Result += '"Message":"'+FORMAT(message)+'"';
+Result += '}';
+
+LOCAL JsonBoolean(BoolVar : Boolean) Result : Text
+IF BoolVar THEN 
+  Result := 'true'
+ELSE
+  Result := 'false';
+
+LOCAL ---------------------------------------------- Employee Requisition ----------------------------------------------()
+
+[External] CreateEmployeeRequisition(JobNo : Code[20];VAR EmpRequisitionDescription : Text;RequestedEmployees : Integer;ClosingDate : Text;RequisitionType : Text;JobAdvertPublished : Boolean) Result : Text
+EmployeeRequisitionTbl. INIT;
+
+EmployeeRequisitionTbl.VALIDATE("No.", EmployeeRequisitionTbl."No.");
+
+HRJobTbl.RESET;
+HRJobTbl.SETFILTER("No.", JobNo);
+IF HRJobTbl.FINDFIRST THEN
+    EmployeeRequisitionTbl."Job No." := JobNo;
+    EmployeeRequisitionTbl."Job Title" := HRJobTbl."Job Title";
+    EmployeeRequisitionTbl."Job Grade" := HRJobTbl."Job Grade";
+    
+
+ 
+EmployeeRequisitionTbl."Emp. Requisition Description" := EmpRequisitionDescription;
+
+EmployeeRequisitionTbl."Requested Employees" := RequestedEmployees;
+
+IF ClosingDate <> '' THEN
+  EVALUATE(EmployeeRequisitionTbl."Closing Date",ClosingDate );
+ 
+CASE TRUE OF 
+    LOWERCASE(RequisitionType) = ' ':
+        EmployeeRequisitionTbl."Requisition Type" := EmployeeRequisitionTbl."Requisition Type"::" ";
+    LOWERCASE(RequisitionType) = 'internal':
+        EmployeeRequisitionTbl."Requisition Type" := EmployeeRequisitionTbl."Requisition Type"::Internal;
+    LOWERCASE(RequisitionType) = 'internal/external':
+        EmployeeRequisitionTbl."Requisition Type" := EmployeeRequisitionTbl."Requisition Type"::"Internal/External";
+
+    END;
+
+EmployeeRequisitionTbl."Job Advert Published" := JobAdvertPublished;
+EmployeeRequisitionTbl.INSERT(TRUE);
+
+Result := EmployeeRequisitionSerializer(EmployeeRequisitionTbl);
+Result := ResponseFormat(200, Result, 'But we all know whose getting the job. *wink')
+
+[External] GetEmployeeRequisitionRange() Result : Text
+Result := '[';
+
+EmployeeRequisitionTbl.RESET;
+REPEAT 
+    Result += EmployeeRequisitionSerializer(EmployeeRequisitionTbl);
+    Result += ','
+
+
+UNTIL EmployeeRequisitionTbl.NEXT = 0;
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+
+Result := ResponseFormat(200, Result, 'Here you go...')
+
+[External] GetEmployeeRequisition(EmployeeRequisitionID : Code[20]) Result : Text
+EmployeeRequisitionTbl.RESET;
+EmployeeRequisitionTbl.SETFILTER("No.", EmployeeRequisitionID);
+
+IF EmployeeRequisitionTbl.FINDFIRST THEN BEGIN
+   Result := EmployeeRequisitionSerializer(EmployeeRequisitionTbl);
+   Result := ResponseFormat(200,  Result, 'Found it.');
+END ELSE BEGIN
+  Result :=  EmptyEmployeeRequisition();
+  Result := ResponseFormat(404,  Result, 'You want what!?');
+  END;
+
+[External] UpdateEmployeeRequisition(EmployeeRequisitionID : Code[20];JobNo : Code[20];EmpRequisitionDescription : Text;RequestedEmployees : Integer;ClosingDate : Text;RequisitionType : Text;JobAdvertPublished : Boolean) Result : Text
+EmployeeRequisitionTbl.RESET;
+EmployeeRequisitionTbl.SETFILTER("No.", EmployeeRequisitionID);
+
+IF EmployeeRequisitionTbl.FINDFIRST THEN BEGIN
+  HRJobTbl.RESET;
+  HRJobTbl.SETFILTER("No.", JobNo);
+  IF HRJobTbl.FINDFIRST THEN
+      EmployeeRequisitionTbl."Job No." := JobNo;
+      EmployeeRequisitionTbl."Job Title" := HRJobTbl."Job Title";
+      EmployeeRequisitionTbl."Job Grade" := HRJobTbl."Job Grade";
+ 
+  EmployeeRequisitionTbl."Emp. Requisition Description" := EmpRequisitionDescription;
+
+  EmployeeRequisitionTbl."Requested Employees" := RequestedEmployees;
+
+  IF ClosingDate <> '' THEN
+    EVALUATE(EmployeeRequisitionTbl."Closing Date",ClosingDate );
+ 
+  CASE TRUE OF 
+      LOWERCASE(RequisitionType) = ' ':
+          EmployeeRequisitionTbl."Requisition Type" := EmployeeRequisitionTbl."Requisition Type"::" ";
+      LOWERCASE(RequisitionType) = 'internal':
+          EmployeeRequisitionTbl."Requisition Type" := EmployeeRequisitionTbl."Requisition Type"::Internal;
+      LOWERCASE(RequisitionType) = 'internal/external':
+          EmployeeRequisitionTbl."Requisition Type" := EmployeeRequisitionTbl."Requisition Type"::"Internal/External";
+      END;
+
+  EmployeeRequisitionTbl."Job Advert Published" := JobAdvertPublished;
+  
+  EmployeeRequisitionTbl.MODIFY;
+
+  Result := EmployeeRequisitionSerializer(EmployeeRequisitionTbl);
+  Result := ResponseFormat(200, Result, 'Because it wasnt bad the first time.');
+
+END ELSE BEGIN
+  Result :=  EmptyEmployeeRequisition();
+  Result := ResponseFormat(404,  Result, 'You want what!?');
+  END;
+
+[External] DeleteEmployeeRequisition(EmployeeRequisitionID : Code[20]) Result : Text
+EmployeeRequisitionTbl.RESET;
+
+EmployeeRequisitionTbl.SETFILTER("No.", EmployeeRequisitionID);
+
+IF EmployeeRequisitionTbl.FINDFIRST THEN BEGIN
+   EmployeeRequisitionTbl.DELETE;
+   Result := ResponseFormat(200,  '', 'Now, nobody will ever know.');
+
+END ELSE  BEGIN
+  Result :=  EmptyEmployeeRequisition();
+  Result := ResponseFormat(404,  Result, 'Someone got to it first.');
+  END;
+
+LOCAL EmployeeRequisitionSerializer(EmployeeRequisitionTbl : Record "HR Employee Requisitions") Result : Text
+Result := '{'; 
+Result += '\"No\":\"'+FORMAT(EmployeeRequisitionTbl."No.")+'\",';
+Result += '\"JobNo\":\"'+FORMAT(EmployeeRequisitionTbl."Job No.")+'\",';
+Result += '\"JobTitle\":\"'+FORMAT(EmployeeRequisitionTbl."Job Title")+'\",';
+Result += '\"EmpRequisitionDescription\":\"'+FORMAT(EmployeeRequisitionTbl."Emp. Requisition Description")+'\",';
+Result += '\"RequestedEmployees\":'+FORMAT(EmployeeRequisitionTbl."Requested Employees")+',';
+Result += '\"ClosingDate\":\"'+FORMAT(EmployeeRequisitionTbl."Closing Date")+'\",';
+Result += '\"RequisitionType\":\"'+FORMAT(EmployeeRequisitionTbl."Requisition Type")+'\",';
+Result += '\"JobAdvertPublished\":'+JsonBoolean(EmployeeRequisitionTbl."Job Advert Published")+'';
+Result += '}'; 
+
+LOCAL EmptyEmployeeRequisition() Result : Text
+EmployeeRequisitionTbl.INIT;
+EmployeeRequisitionTbl."No." := 'N/A';
+Result := EmployeeRequisitionSerializer(EmployeeRequisitionTbl);
+
+LOCAL ---------------------------------------------- Job Application ----------------------------------------------()
+
+[External] CreateJobApplication(EmployeeRequisitionNo : Code[20];Surname : Text;Firstname : Text;Middlename : Text;Gender : Text;DateofBirth : Text;PostCode : Code[20];PostalAddress : Code[20];County : Code[20];SubCounty : Code[20];AlternativePhoneNo 
+
+JobApplicationTbl.INIT;
+
+JobApplicationTbl.VALIDATE("No.", JobApplicationTbl."No.");
+
+// What Job is being applied for.
+HREmployeeRequisitionsTbl.RESET;
+HREmployeeRequisitionsTbl.SETFILTER("No.", EmployeeRequisitionNo);
+IF HREmployeeRequisitionsTbl.FINDFIRST THEN BEGIN
+    JobApplicationTbl."Employee Requisition No." := HREmployeeRequisitionsTbl."No.";
+    JobApplicationTbl."Job No." := HREmployeeRequisitionsTbl."Job No.";
+    JobApplicationTbl."Job Grade" := HREmployeeRequisitionsTbl."Job Grade";
+    JobApplicationTbl."Emp. Requisition Description" := HREmployeeRequisitionsTbl."Emp. Requisition Description";
+    
+    HRJobGradeLevelsTbl.RESET;
+    HRJobGradeLevelsTbl.SETFILTER("Job Grade", HREmployeeRequisitionsTbl."Job Grade");
+    IF HRJobGradeLevelsTbl.FINDFIRST THEN BEGIN
+      JobApplicationTbl."Salary Notch" := HRJobGradeLevelsTbl."Job Grade Level";
+    END;
+  END;
+    
+// Who is applying 
+JobApplicationTbl.Surname := Surname;
+JobApplicationTbl.Firstname := Firstname;
+JobApplicationTbl.Middlename := Middlename;
+
+CASE TRUE OF 
+    LOWERCASE(Gender) = ' ':
+        JobApplicationTbl.Gender := JobApplicationTbl.Gender::" ";
+    LOWERCASE(Gender) = 'male':
+        JobApplicationTbl.Gender := JobApplicationTbl.Gender::Male;
+    LOWERCASE(Gender) = 'female':
+        JobApplicationTbl.Gender := JobApplicationTbl.Gender::Female;
+    END;
+
+IF DateofBirth <> '' THEN
+  EVALUATE(JobApplicationTbl."Date of Birth",DateofBirth );
+
+
+// LOCATION Details
+JobApplicationTbl."Postal Address" := PostalAddress;
+
+PostCodeTbl.RESET;
+PostCodeTbl.SETFILTER(Code, PostCode);
+IF PostCodeTbl.FINDFIRST THEN BEGIN
+    JobApplicationTbl."Post Code" := PostCode;
+    JobApplicationTbl."City/Town" := PostCodeTbl.City;
+    JobApplicationTbl.Country := PostCodeTbl."Country/Region Code";
+
+    END;
+
+ 
+CountyTbl.RESET;
+CountyTbl.SETFILTER(Code, County);
+IF CountyTbl.FINDFIRST THEN BEGIN
+  JobApplicationTbl.County := CountyTbl.Code;
+  JobApplicationTbl."County Name" := CountyTbl.Name;
+  
+  // Both the county and sub county fields should agree.
+  SubCountyTbl.RESET;
+  SubCountyTbl.SETFILTER("County Code", SubCounty);
+  IF SubCountyTbl.FINDFIRST THEN BEGIN
+    JobApplicationTbl.SubCounty := SubCountyTbl."Sub-County Code";
+    JobApplicationTbl."SubCounty Name":= SubCountyTbl."Sub-County Name";
+    END;
+END;
+
+
+// Contact Details
+JobApplicationTbl."Alternative Phone No." := AlternativePhoneNo;
+JobApplicationTbl."Mobile Phone No." := MobilePhone;
+JobApplicationTbl."Personal Email Address" := PersonalEmailAddress;
+
+// Documents No.
+JobApplicationTbl."Birth Certificate No." := BirthCertificateNo;
+JobApplicationTbl."National ID No." := NationalIDNo;
+JobApplicationTbl."Passport No." := PassportNo;
+JobApplicationTbl."Driving Licence No." := DrivingLicenceNo;
+
+
+ 
+CASE TRUE OF 
+    LOWERCASE(MaritalStatus) = ' ':
+        JobApplicationTbl."Marital Status" := JobApplicationTbl."Marital Status"::" ";
+    LOWERCASE(MaritalStatus) = 'single':
+        JobApplicationTbl."Marital Status" := JobApplicationTbl."Marital Status"::Single;
+    LOWERCASE(MaritalStatus) = 'married':
+        JobApplicationTbl."Marital Status" := JobApplicationTbl."Marital Status"::Married;
+
+    END;
+
+
+ 
+CitizenshipTbl.RESET;
+CitizenshipTbl.SETFILTER(Option, 'Nationality');
+CitizenshipTbl.SETFILTER(Description, Citizenship);
+IF CitizenshipTbl.FINDFIRST THEN
+    JobApplicationTbl.Citizenship := CitizenshipTbl.Code;
+
+
+ 
+ReligionTbl.RESET;
+ReligionTbl.SETFILTER(Option, 'Religion');
+ReligionTbl.SETFILTER(Description, Religion);
+IF ReligionTbl.FINDFIRST THEN
+    JobApplicationTbl.Religion := ReligionTbl.Code;
+
+
+ 
+CASE TRUE OF 
+    LOWERCASE(PersonLivingWithDisability) = 'no':
+        JobApplicationTbl."Person Living With Disability" := JobApplicationTbl."Person Living With Disability"::No;
+    LOWERCASE(PersonLivingWithDisability) = 'yes':
+        JobApplicationTbl."Person Living With Disability" := JobApplicationTbl."Person Living With Disability"::Yes;
+    END;
+
+EthnicGroupTbl.RESET;
+EthnicGroupTbl.SETFILTER(Option, 'Ethnicity');
+EthnicGroupTbl.SETFILTER(Description, EthnicGroup);
+IF EthnicGroupTbl.FINDFIRST THEN
+    JobApplicationTbl."Ethnic Group" := EthnicGroup;
+ 
+
+// Important Numbers. 
+JobApplicationTbl."PIN  No." := PINNo;
+JobApplicationTbl."NHIF No." := NHIFNo;
+JobApplicationTbl."NSSF No." := NSSFNo;
+
+IF ApplicationDate <> '' THEN
+  EVALUATE(JobApplicationTbl."Application Date",ApplicationDate );
+
+
+JobApplicationTbl.Qualified := Qualified;
+JobApplicationTbl.ShortListed := ShortListed;
+ 
+JobApplicationTbl."Committee Shortlisted" := CommitteeShortlisted;
+
+
+ 
+CASE TRUE OF 
+    LOWERCASE(Status) = 'open':
+        JobApplicationTbl.Status := JobApplicationTbl.Status::Open;
+    LOWERCASE(Status) = 'pending approval':
+        JobApplicationTbl.Status := JobApplicationTbl.Status::"Pending Approval";
+  {
+    LOWERCASE(Status) = 'approved':
+        JobApplicationTbl.Status := JobApplicationTbl.Status::Approved;
+    LOWERCASE(Status) = 'submitted':
+        JobApplicationTbl.Status := JobApplicationTbl.Status::Submitted;
+    LOWERCASE(Status) = 'shortlisted':
+        JobApplicationTbl.Status := JobApplicationTbl.Status::Shortlisted;
+    LOWERCASE(Status) = 'unsuccessful':
+        JobApplicationTbl.Status := JobApplicationTbl.Status::Unsuccessful;
+    LOWERCASE(Status) = 'closed':
+        JobApplicationTbl.Status := JobApplicationTbl.Status::Closed;
+   }
+    END;
+ 
+JobApplicationTbl."Employee Created" := EmployeeCreated;
+
+BankCodeTbl.RESET;
+
+BankCodeTbl.SETFILTER("Bank Code", BankCode);
+IF BankCodeTbl.FINDFIRST THEN BEGIN
+    JobApplicationTbl."Bank Code" := BankCodeTbl."Bank Code";
+    JobApplicationTbl."Bank Name" := BankCodeTbl."Bank Name";
+    END;
+
+BankBranchCodeTbl.RESET;
+
+BankBranchCodeTbl.SETFILTER("Bank Branch Code", BankBranchCode);
+IF BankBranchCodeTbl.FINDFIRST THEN BEGIN
+    JobApplicationTbl."Bank Branch Code" := BankBranchCodeTbl."Bank Branch Code";
+    JobApplicationTbl."Bank Branch Name" := BankBranchCodeTbl."Bank Branch Name";
+    END;
+ 
+IF ContractStartDate <> '' THEN
+  EVALUATE(JobApplicationTbl."Contract Start Date",ContractStartDate );
+
+IF ProbationStartDate <> '' THEN
+  EVALUATE(JobApplicationTbl."Probation Start Date",ProbationStartDate );
+ 
+IF ProbationEnddate <> '' THEN
+  EVALUATE(JobApplicationTbl."Probation End date",ProbationEnddate );
+ 
+IF ContractEndDate <> '' THEN
+  EVALUATE(JobApplicationTbl."Contract End Date",ContractEndDate );
+
+IF ContractDate <> '' THEN
+  EVALUATE(JobApplicationTbl."Contract Date",ContractDate );
+ 
+IF CEOMeetingDate <> '' THEN
+  EVALUATE(JobApplicationTbl."CEO Meeting Date",CEOMeetingDate );
+ 
+IF CEOMeetingTime <> '' THEN
+  EVALUATE(JobApplicationTbl."CEO Meeting Time",CEOMeetingTime );
+
+JobApplicationTbl.INSERT(TRUE);
+
+Result := JobApplicationSerializer(JobApplicationTbl);
+Result := ResponseFormat(200, Result, 'JobApplication was created successfully');
+
+[External] GetJobApplicationRange() Result : Text
+Result := '[';
+
+JobApplicationTbl.RESET;
+REPEAT 
+    Result += JobApplicationSerializer(JobApplicationTbl);
+
+    IF JobApplicationTbl.NEXT <> 0 THEN
+        Result += ',';
+UNTIL JobApplicationTbl.NEXT = 0;
+
+Result += ']';
+Result := ResponseFormat(200, Result, 'List for Job Applications retrieved successfully.');
+
+[External] GetJobApplication(JobApplicationID : Code[20]) Result : Text
+JobApplicationTbl.RESET;
+JobApplicationTbl.SETFILTER("No.", JobApplicationID);
+
+IF JobApplicationTbl.FINDFIRST THEN BEGIN
+   Result := JobApplicationSerializer(JobApplicationTbl);
+   Result := ResponseFormat(200, Result, 'JobApplication was found.');
+END ELSE  BEGIN
+  Result :=  EmptyJobApplication();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateJobApplication(JobApplicationID : Code[20];EmployeeRequisitionNo : Code[20];Surname : Text;Firstname : Text;Middlename : Text;Gender : Text;DateofBirth : Text;PostCode : Code[20];PostalAddress : Code[20];County : Code[20];SubCounty : 
+JobApplicationTbl.RESET;
+JobApplicationTbl.SETFILTER("No.", JobApplicationID);
+
+IF JobApplicationTbl.FINDFIRST THEN BEGIN
+  
+  // What Job is being applied for.
+  HREmployeeRequisitionsTbl.RESET;
+  HREmployeeRequisitionsTbl.SETFILTER("No.", EmployeeRequisitionNo);
+  IF HREmployeeRequisitionsTbl.FINDFIRST THEN BEGIN
+      JobApplicationTbl."Employee Requisition No." := HREmployeeRequisitionsTbl."No.";
+      JobApplicationTbl."Job No." := HREmployeeRequisitionsTbl."Job No.";
+      JobApplicationTbl."Job Grade" := HREmployeeRequisitionsTbl."Job Grade";
+      JobApplicationTbl."Emp. Requisition Description" := HREmployeeRequisitionsTbl."Emp. Requisition Description";
+    
+      HRJobGradeLevelsTbl.RESET;
+      HRJobGradeLevelsTbl.SETFILTER("Job Grade", HREmployeeRequisitionsTbl."Job Grade");
+      IF HRJobGradeLevelsTbl.FINDFIRST THEN BEGIN
+        JobApplicationTbl."Salary Notch" := HRJobGradeLevelsTbl."Job Grade Level";
+      END;
+    END;
+    
+  // Who is applying 
+  JobApplicationTbl.Surname := Surname;
+  JobApplicationTbl.Firstname := Firstname;
+  JobApplicationTbl.Middlename := Middlename;
+
+  CASE TRUE OF 
+      LOWERCASE(Gender) = ' ':
+          JobApplicationTbl.Gender := JobApplicationTbl.Gender::" ";
+      LOWERCASE(Gender) = 'male':
+          JobApplicationTbl.Gender := JobApplicationTbl.Gender::Male;
+      LOWERCASE(Gender) = 'female':
+          JobApplicationTbl.Gender := JobApplicationTbl.Gender::Female;
+      END;
+
+  IF DateofBirth <> '' THEN
+    EVALUATE(JobApplicationTbl."Date of Birth",DateofBirth );
+
+
+  // LOCATION Details
+  JobApplicationTbl."Postal Address" := PostalAddress;
+
+  PostCodeTbl.RESET;
+  PostCodeTbl.SETFILTER(Code, PostCode);
+  IF PostCodeTbl.FINDFIRST THEN BEGIN
+      JobApplicationTbl."Post Code" := PostCode;
+      JobApplicationTbl."City/Town" := PostCodeTbl.City;
+      JobApplicationTbl.Country := PostCodeTbl."Country/Region Code";
+
+      END;
+
+ 
+  CountyTbl.RESET;
+  CountyTbl.SETFILTER(Code, County);
+  IF CountyTbl.FINDFIRST THEN BEGIN
+    JobApplicationTbl.County := CountyTbl.Code;
+    JobApplicationTbl."County Name" := CountyTbl.Name;
+  
+    // Both the county and sub county fields should agree.
+    SubCountyTbl.RESET;
+    SubCountyTbl.SETFILTER("County Code", SubCounty);
+    IF SubCountyTbl.FINDFIRST THEN BEGIN
+      JobApplicationTbl.SubCounty := SubCountyTbl."Sub-County Code";
+      JobApplicationTbl."SubCounty Name":= SubCountyTbl."Sub-County Name";
+      END;
+  END;
+
+
+  // Contact Details
+  JobApplicationTbl."Alternative Phone No." := AlternativePhoneNo;
+  JobApplicationTbl."Mobile Phone No." := MobilePhone;
+  JobApplicationTbl."Personal Email Address" := PersonalEmailAddress;
+
+  // Documents No.
+  JobApplicationTbl."Birth Certificate No." := BirthCertificateNo;
+  JobApplicationTbl."National ID No." := NationalIDNo;
+  JobApplicationTbl."Passport No." := PassportNo;
+  JobApplicationTbl."Driving Licence No." := DrivingLicenceNo;
+
+
+ 
+  CASE TRUE OF 
+      LOWERCASE(MaritalStatus) = ' ':
+          JobApplicationTbl."Marital Status" := JobApplicationTbl."Marital Status"::" ";
+      LOWERCASE(MaritalStatus) = 'single':
+          JobApplicationTbl."Marital Status" := JobApplicationTbl."Marital Status"::Single;
+      LOWERCASE(MaritalStatus) = 'married':
+          JobApplicationTbl."Marital Status" := JobApplicationTbl."Marital Status"::Married;
+
+      END;
+
+
+ 
+  CitizenshipTbl.RESET;
+  CitizenshipTbl.SETFILTER(Option, 'Nationality');
+  CitizenshipTbl.SETFILTER(Description, Citizenship);
+  IF CitizenshipTbl.FINDFIRST THEN
+      JobApplicationTbl.Citizenship := CitizenshipTbl.Code;
+
+
+ 
+  ReligionTbl.RESET;
+  ReligionTbl.SETFILTER(Option, 'Religion');
+  ReligionTbl.SETFILTER(Description, Religion);
+  IF ReligionTbl.FINDFIRST THEN
+      JobApplicationTbl.Religion := ReligionTbl.Code;
+
+
+ 
+  CASE TRUE OF 
+      LOWERCASE(PersonLivingWithDisability) = 'no':
+          JobApplicationTbl."Person Living With Disability" := JobApplicationTbl."Person Living With Disability"::No;
+      LOWERCASE(PersonLivingWithDisability) = 'yes':
+          JobApplicationTbl."Person Living With Disability" := JobApplicationTbl."Person Living With Disability"::Yes;
+      END;
+
+  EthnicGroupTbl.RESET;
+  EthnicGroupTbl.SETFILTER(Option, 'Ethnicity');
+  EthnicGroupTbl.SETFILTER(Description, EthnicGroup);
+  IF EthnicGroupTbl.FINDFIRST THEN
+      JobApplicationTbl."Ethnic Group" := EthnicGroup;
+ 
+
+  // Important Numbers. 
+  JobApplicationTbl."PIN  No." := PINNo;
+  JobApplicationTbl."NHIF No." := NHIFNo;
+  JobApplicationTbl."NSSF No." := NSSFNo;
+
+  IF ApplicationDate <> '' THEN
+    EVALUATE(JobApplicationTbl."Application Date",ApplicationDate );
+
+
+  JobApplicationTbl.Qualified := Qualified;
+  JobApplicationTbl.ShortListed := ShortListed;
+ 
+  JobApplicationTbl."Committee Shortlisted" := CommitteeShortlisted;
+
+
+ 
+  CASE TRUE OF 
+      LOWERCASE(Status) = 'open':
+          JobApplicationTbl.Status := JobApplicationTbl.Status::Open;
+      LOWERCASE(Status) = 'pending approval':
+          JobApplicationTbl.Status := JobApplicationTbl.Status::"Pending Approval";
+      LOWERCASE(Status) = 'approved':
+          JobApplicationTbl.Status := JobApplicationTbl.Status::Approved;
+      LOWERCASE(Status) = 'submitted':
+          JobApplicationTbl.Status := JobApplicationTbl.Status::Submitted;
+      LOWERCASE(Status) = 'shortlisted':
+          JobApplicationTbl.Status := JobApplicationTbl.Status::Shortlisted;
+      LOWERCASE(Status) = 'unsuccessful':
+          JobApplicationTbl.Status := JobApplicationTbl.Status::Unsuccessful;
+      LOWERCASE(Status) = 'closed':
+          JobApplicationTbl.Status := JobApplicationTbl.Status::Closed;
+   
+      END;
+ 
+  JobApplicationTbl."Employee Created" := EmployeeCreated;
+
+  BankCodeTbl.RESET;
+  BankCodeTbl.SETFILTER("Bank Code", BankCode);
+  IF BankCodeTbl.FINDFIRST THEN BEGIN
+      JobApplicationTbl."Bank Code" := BankCodeTbl."Bank Code";
+      JobApplicationTbl."Bank Name" := BankCodeTbl."Bank Name";
+      END;
+
+  BankBranchCodeTbl.RESET;
+
+  BankBranchCodeTbl.SETFILTER("Bank Branch Code", BankBranchCode);
+  IF BankBranchCodeTbl.FINDFIRST THEN BEGIN
+      JobApplicationTbl."Bank Branch Code" := BankBranchCodeTbl."Bank Branch Code";
+      JobApplicationTbl."Bank Branch Name" := BankBranchCodeTbl."Bank Branch Name";
+      END;
+ 
+  IF ContractStartDate <> '' THEN
+    EVALUATE(JobApplicationTbl."Contract Start Date",ContractStartDate );
+
+  IF ProbationStartDate <> '' THEN
+    EVALUATE(JobApplicationTbl."Probation Start Date",ProbationStartDate );
+ 
+  IF ProbationEnddate <> '' THEN
+    EVALUATE(JobApplicationTbl."Probation End date",ProbationEnddate );
+ 
+  IF ContractEndDate <> '' THEN
+    EVALUATE(JobApplicationTbl."Contract End Date",ContractEndDate );
+
+  IF ContractDate <> '' THEN
+    EVALUATE(JobApplicationTbl."Contract Date",ContractDate );
+ 
+  IF CEOMeetingDate <> '' THEN
+    EVALUATE(JobApplicationTbl."CEO Meeting Date",CEOMeetingDate );
+ 
+  IF CEOMeetingTime <> '' THEN
+    EVALUATE(JobApplicationTbl."CEO Meeting Time",CEOMeetingTime );
+
+    JobApplicationTbl.MODIFY;
+    Result := JobApplicationSerializer(JobApplicationTbl);
+    Result := ResponseFormat(200, Result, 'Job Application was update successfully.');
+  
+END ELSE  BEGIN
+  Result :=  EmptyJobApplication();
+  Result := ResponseFormat(404, Result, 'Job Application was not found.');
+  END;
+
+[External] DeleteJobApplication(JobApplicationID : Code[20]) Result : Text
+JobApplicationTbl.RESET;
+
+JobApplicationTbl.SETFILTER("No.", JobApplicationID);
+
+IF JobApplicationTbl.FINDFIRST THEN BEGIN
+   JobApplicationTbl.DELETE;
+   
+   Result := ResponseFormat(200, '', 'JobApplication was deleted successfully');
+
+END ELSE  BEGIN
+  Result :=  EmptyJobApplication();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+
+END;
+
+LOCAL JobApplicationSerializer(JobApplicationTbl : Record "HR Job Applications") Result : Text
+Result := '{'; 
+Result += '\"No\":\"'+FORMAT(JobApplicationTbl."No.")+'\",';
+Result += '\"EmployeeRequisitionNo\":\"'+FORMAT(JobApplicationTbl."Employee Requisition No.")+'\",';
+Result += '\"Surname\":\"'+FORMAT(JobApplicationTbl.Surname)+'\",';
+Result += '\"Firstname\":\"'+FORMAT(JobApplicationTbl.Firstname)+'\",';
+Result += '\"Middlename\":\"'+FORMAT(JobApplicationTbl.Middlename)+'\",';
+Result += '\"Gender\":\"'+FORMAT(JobApplicationTbl.Gender)+'\",';
+Result += '\"DateofBirth\":\"'+FORMAT(JobApplicationTbl."Date of Birth")+'\",';
+Result += '\"PostalAddress\":\"'+FORMAT(JobApplicationTbl."Postal Address")+'\",';
+Result += '\"PostCode\":\"'+FORMAT(JobApplicationTbl."Post Code")+'\",';
+Result += '\"CityTown\":\"'+FORMAT(JobApplicationTbl."City/Town")+'\",';
+Result += '\"County\":\"'+FORMAT(JobApplicationTbl.County)+'\",';
+Result += '\"SubCounty\":\"'+FORMAT(JobApplicationTbl.SubCounty)+'\",';
+Result += '\"Country\":\"'+FORMAT(JobApplicationTbl.Country)+'\",';
+Result += '\"AlternativePhoneNo\":\"'+FORMAT(JobApplicationTbl."Alternative Phone No.")+'\",';
+Result += '\"MobilePhoneNo\":\"'+FORMAT(JobApplicationTbl."Mobile Phone No.")+'\",';
+Result += '\"PersonalEmailAddress\":\"'+FORMAT(JobApplicationTbl."Personal Email Address")+'\",';
+Result += '\"BirthCertificateNo\":\"'+FORMAT(JobApplicationTbl."Birth Certificate No.")+'\",';
+Result += '\"NationalIDNo\":\"'+FORMAT(JobApplicationTbl."National ID No.")+'\",';
+Result += '\"PassportNo\":\"'+FORMAT(JobApplicationTbl."Passport No.")+'\",';
+Result += '\"DrivingLicenceNo\":\"'+FORMAT(JobApplicationTbl."Driving Licence No.")+'\",';
+Result += '\"MaritalStatus\":\"'+FORMAT(JobApplicationTbl."Marital Status")+'\",';
+Result += '\"Citizenship\":\"'+FORMAT(JobApplicationTbl.Citizenship)+'\",';
+Result += '\"Religion\":\"'+FORMAT(JobApplicationTbl.Religion)+'\",';
+Result += '\"PersonLivingWithDisability\":\"'+FORMAT(JobApplicationTbl."Person Living With Disability")+'\",';
+Result += '\"EthnicGroup\":\"'+FORMAT(JobApplicationTbl."Ethnic Group")+'\",';
+Result += '\"EmailAddress\":\"'+FORMAT(JobApplicationTbl."Email Address")+'\",';
+Result += '\"PINNo\":\"'+FORMAT(JobApplicationTbl."PIN  No.")+'\",';
+Result += '\"NHIFNo\":\"'+FORMAT(JobApplicationTbl."NHIF No.")+'\",';
+Result += '\"NSSFNo\":\"'+FORMAT(JobApplicationTbl."NSSF No.")+'\",';
+Result += '\"ApplicationDate\":\"'+FORMAT(JobApplicationTbl."Application Date")+'\",';
+Result += '\"Qualified\":'+JsonBoolean(JobApplicationTbl.Qualified)+',';
+Result += '\"ShortListed\":'+JsonBoolean(JobApplicationTbl.ShortListed)+',';
+Result += '\"SalaryNotch\":\"'+FORMAT(JobApplicationTbl."Salary Notch")+'\",';
+Result += '\"CommitteeShortlisted\":'+JsonBoolean(JobApplicationTbl."Committee Shortlisted")+',';
+Result += '\"Status\":\"'+FORMAT(JobApplicationTbl.Status)+'\",';
+Result += '\"EmployeeCreated\":'+JsonBoolean(JobApplicationTbl."Employee Created")+',';
+Result += '\"BankCode\":\"'+FORMAT(JobApplicationTbl."Bank Code")+'\",';
+Result += '\"BankName\":\"'+FORMAT(JobApplicationTbl."Bank Name")+'\",';
+Result += '\"BankBranchCode\":\"'+FORMAT(JobApplicationTbl."Bank Branch Code")+'\",';
+Result += '\"BankBranchName\":\"'+FORMAT(JobApplicationTbl."Bank Branch Name")+'\",';
+Result += '\"ContractStartDate\":\"'+FORMAT(JobApplicationTbl."Contract Start Date")+'\",';
+Result += '\"ProbationStartDate\":\"'+FORMAT(JobApplicationTbl."Probation Start Date")+'\",';
+Result += '\"ProbationPeriod\":\"'+FORMAT(JobApplicationTbl."Probation Period")+'\",';
+Result += '\"ProbationEnddate\":\"'+FORMAT(JobApplicationTbl."Probation End date")+'\",';
+Result += '\"ContractPeriod\":\"'+FORMAT(JobApplicationTbl."Contract Period")+'\",';
+Result += '\"ContractEndDate\":\"'+FORMAT(JobApplicationTbl."Contract End Date")+'\",';
+Result += '\"ContractDate\":\"'+FORMAT(JobApplicationTbl."Contract Date")+'\",';
+Result += '\"CEOMeetingDate\":\"'+FORMAT(JobApplicationTbl."CEO Meeting Date")+'\",';
+Result += '\"CEOMeetingTime\":\"'+FORMAT(JobApplicationTbl."CEO Meeting Time")+'\"';
+Result += '}'; 
+
+LOCAL EmptyJobApplication() Result : Text
+JobApplicationTbl.INIT;
+JobApplicationTbl."No." := 'N/A';
+Result:= JobApplicationSerializer(JobApplicationTbl);
+
+LOCAL ---------------------------------------------- Interview Attendance Header ----------------------------------------------()
+
+[External] CreateInterviewAttendanceHeader(InterviewCommitteecode : Code[20];InterviewDatefrom : Text;InterviewDateto : Text;InterviewTime : Text;InterviewLocation : Text;InterviewChairpersonCode : Code[20];InterviewPurpose : Text;JobRequisitionNo : C
+InterviewAttendanceHeaderTbl.INIT;
+
+InterviewAttendanceHeaderTbl.VALIDATE("Interview No", InterviewAttendanceHeaderTbl."Interview No");
+
+InterviewCommitteeDepHeaderTbl.RESET;
+InterviewCommitteeDepHeaderTbl.SETFILTER("Department Code", InterviewCommitteecode);
+IF InterviewCommitteeDepHeaderTbl.FINDFIRST THEN BEGIN
+    InterviewAttendanceHeaderTbl."Interview Committee code" := InterviewCommitteeDepHeaderTbl."Department Code";
+    InterviewAttendanceHeaderTbl."Interview Committee Name" := InterviewCommitteeDepHeaderTbl."Dept Committee Name";
+END;
+
+ 
+IF InterviewDatefrom <> '' THEN BEGIN
+  EVALUATE(InterviewAttendanceHeaderTbl."Interview Date from",InterviewDatefrom );
+END;
+
+ 
+IF InterviewDateto <> '' THEN BEGIN
+  EVALUATE(InterviewAttendanceHeaderTbl."Interview Date to",InterviewDateto );
+END;
+ 
+InterviewAttendanceHeaderTbl."Interview Time" := InterviewTime;
+
+InterviewAttendanceHeaderTbl."Interview Location" := InterviewLocation;
+ 
+EmployeeTbl.RESET;
+EmployeeTbl.SETFILTER("No.", InterviewChairpersonCode);
+IF EmployeeTbl.FINDFIRST THEN BEGIN
+    InterviewAttendanceHeaderTbl."Interview Chairperson Code" := EmployeeTbl."No.";
+    InterviewAttendanceHeaderTbl."Interview Chairperson Name" := EmployeeTbl."First Name"+' '+EmployeeTbl."Middle Name"+' '+EmployeeTbl."Last Name";
+END;
+ 
+InterviewAttendanceHeaderTbl."Interview Purpose" := InterviewPurpose;
+ 
+HREmployeeRequisitionTbl.RESET;
+HREmployeeRequisitionTbl.SETFILTER("No.", JobRequisitionNo);
+IF HREmployeeRequisitionTbl.FINDFIRST THEN BEGIN
+    InterviewAttendanceHeaderTbl."Job Requisition No." := HREmployeeRequisitionTbl."No.";
+    InterviewAttendanceHeaderTbl."Job Title" := HREmployeeRequisitionTbl."Job Title";
+    InterviewAttendanceHeaderTbl.Description := HREmployeeRequisitionTbl.Description;
+    InterviewAttendanceHeaderTbl."Interview Job No.":= HREmployeeRequisitionTbl."Job No.";
+END;
+
+InterviewAttendanceHeaderTbl."Committee Remarks" := CommitteeRemarks;
+
+InterviewAttendanceHeaderTbl.Closed := Closed;
+ 
+InterviewAttendanceHeaderTbl."Mandatory Docs. Required" := MandatoryDocsRequired;
+
+InterviewAttendanceHeaderTbl.INSERT(TRUE);
+Result := InterviewAttendanceHeaderSerializer(InterviewAttendanceHeaderTbl);
+Result := ResponseFormat(200, Result, 'InterviewAttendanceHeader was created successfully');
+
+[External] GetInterviewAttendanceHeaderRange() Result : Text
+Result := '[';
+
+InterviewAttendanceHeaderTbl.RESET;
+REPEAT 
+    Result += InterviewAttendanceHeaderSerializer(InterviewAttendanceHeaderTbl);
+    Result += ',';
+
+UNTIL InterviewAttendanceHeaderTbl.NEXT = 0;
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+
+Result := ResponseFormat(200, Result, 'List for InterviewAttendanceHeader retrieved successfully.');
+
+[External] GetInterviewAttendanceHeader(InterviewAttendanceHeaderID : Text) Result : Text
+InterviewAttendanceHeaderTbl.RESET;
+InterviewAttendanceHeaderTbl.SETFILTER("Interview No", InterviewAttendanceHeaderID);
+
+IF InterviewAttendanceHeaderTbl.FINDFIRST THEN BEGIN
+   Result := InterviewAttendanceHeaderSerializer(InterviewAttendanceHeaderTbl);
+   Result := ResponseFormat(200, Result, 'InterviewAttendanceHeader was found.');
+END ELSE  BEGIN
+  Result :=  EmptyInterviewAttendanceHeader();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateInterviewAttendanceHeader(InterviewAttendanceHeaderID : Code[20];InterviewCommitteecode : Code[20];InterviewDatefrom : Text;InterviewDateto : Text;InterviewTime : Text;InterviewLocation : Text;InterviewChairpersonCode : Code[20];Inter
+InterviewAttendanceHeaderTbl.RESET;
+InterviewAttendanceHeaderTbl.SETFILTER("Interview No", InterviewAttendanceHeaderID);
+
+IF InterviewAttendanceHeaderTbl.FINDFIRST THEN BEGIN
+
+ 
+
+  InterviewCommitteeDepHeaderTbl.RESET;
+  InterviewCommitteeDepHeaderTbl.SETFILTER("Department Code", InterviewCommitteecode);
+  IF InterviewCommitteeDepHeaderTbl.FINDFIRST THEN BEGIN
+      InterviewAttendanceHeaderTbl."Interview Committee code" := InterviewCommitteeDepHeaderTbl."Department Code";
+      InterviewAttendanceHeaderTbl."Interview Committee Name" := InterviewCommitteeDepHeaderTbl."Dept Committee Name";
+  END;
+
+ 
+  IF InterviewDatefrom <> '' THEN BEGIN
+    EVALUATE(InterviewAttendanceHeaderTbl."Interview Date from",InterviewDatefrom );
+  END;
+
+ 
+  IF InterviewDateto <> '' THEN BEGIN
+    EVALUATE(InterviewAttendanceHeaderTbl."Interview Date to",InterviewDateto );
+  END;
+ 
+  InterviewAttendanceHeaderTbl."Interview Time" := InterviewTime;
+
+  InterviewAttendanceHeaderTbl."Interview Location" := InterviewLocation;
+ 
+  EmployeeTbl.RESET;
+  EmployeeTbl.SETFILTER("No.", InterviewChairpersonCode);
+  IF EmployeeTbl.FINDFIRST THEN BEGIN
+      InterviewAttendanceHeaderTbl."Interview Chairperson Code" := EmployeeTbl."No.";
+      InterviewAttendanceHeaderTbl."Interview Chairperson Name" := EmployeeTbl."First Name"+' '+EmployeeTbl."Middle Name"+' '+EmployeeTbl."Last Name";
+  END;
+ 
+  InterviewAttendanceHeaderTbl."Interview Purpose" := InterviewPurpose;
+ 
+  HREmployeeRequisitionTbl.RESET;
+  HREmployeeRequisitionTbl.SETFILTER("No.", JobRequisitionNo);
+  IF HREmployeeRequisitionTbl.FINDFIRST THEN BEGIN
+      InterviewAttendanceHeaderTbl."Job Requisition No." := HREmployeeRequisitionTbl."No.";
+      InterviewAttendanceHeaderTbl."Job Title" := HREmployeeRequisitionTbl."Job Title";
+      InterviewAttendanceHeaderTbl.Description := HREmployeeRequisitionTbl.Description;
+      InterviewAttendanceHeaderTbl."Interview Job No.":= HREmployeeRequisitionTbl."Job No.";
+  END;
+
+  InterviewAttendanceHeaderTbl."Committee Remarks" := CommitteeRemarks;
+
+  InterviewAttendanceHeaderTbl.Closed := Closed;
+ 
+  InterviewAttendanceHeaderTbl."Mandatory Docs. Required" := MandatoryDocsRequired;
+
+
+  InterviewAttendanceHeaderTbl.MODIFY;
+  Result := InterviewAttendanceHeaderSerializer(InterviewAttendanceHeaderTbl);
+  Result := ResponseFormat(200, Result, 'InterviewAttendanceHeader was update successfully.');
+
+END ELSE  BEGIN
+  Result :=  EmptyInterviewAttendanceHeader();
+  Result := ResponseFormat(404, Result, 'InterviewAttendanceHeader was not found.');
+
+END;
+
+[External] DeleteInterviewAttendanceHeader(InterviewAttendanceHeaderID : Code[20]) Result : Text
+
+InterviewAttendanceHeaderTbl.RESET;
+
+InterviewAttendanceHeaderTbl.SETFILTER("Interview No", InterviewAttendanceHeaderID);
+
+IF InterviewAttendanceHeaderTbl.FINDFIRST THEN BEGIN
+   InterviewAttendanceHeaderTbl.DELETE;
+   Result := ResponseFormat(200, '', 'InterviewAttendanceHeader was deleted successfully');
+
+END ELSE BEGIN
+  Result :=  EmptyInterviewAttendanceHeader();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+END;
+
+LOCAL InterviewAttendanceHeaderSerializer(InterviewAttendanceHeaderTbl : Record "Interview Attendance Header") Result : Text
+// Create the JsonBoolean function -> converts CAL Bools to 'true' or 'false'
+Result := '{'; 
+Result += '\"InterviewNo\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Interview No")+'\",';
+Result += '\"InterviewCommitteecode\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Interview Committee code")+'\",';
+Result += '\"InterviewJobNo\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Interview Job No.")+'\",';
+Result += '\"InterviewDatefrom\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Interview Date from")+'\",';
+Result += '\"InterviewDateto\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Interview Date to")+'\",';
+Result += '\"InterviewTime\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Interview Time")+'\",';
+Result += '\"InterviewLocation\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Interview Location")+'\",';
+Result += '\"InterviewChairpersonCode\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Interview Chairperson Code")+'\",';
+Result += '\"InterviewPurpose\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Interview Purpose")+'\",';
+Result += '\"JobRequisitionNo\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Job Requisition No.")+'\",';
+Result += '\"CommitteeRemarks\":\"'+FORMAT(InterviewAttendanceHeaderTbl."Committee Remarks")+'\",';
+Result += '\"Closed\":'+JsonBoolean(InterviewAttendanceHeaderTbl.Closed)+',';
+Result += '\"MandatoryDocsRequired\":'+JsonBoolean(InterviewAttendanceHeaderTbl."Mandatory Docs. Required")+'';
+Result += '}'; 
+
+LOCAL EmptyInterviewAttendanceHeader() Result : Text
+InterviewAttendanceHeaderTbl.INIT;
+InterviewAttendanceHeaderTbl."Interview No" := 'N/A';
+Result:= InterviewAttendanceHeaderSerializer(InterviewAttendanceHeaderTbl);
+
+LOCAL ---------------------------------------------- Interview Attendance Line  ----------------------------------------------()
+
+[External] CreateInterviewAttendanceLine(InterViewID : Code[20];EmployeeID : Code[20];Comments : Text;Closed : Boolean) Result : Text
+InterviewAttendanceLineTbl.INIT;
+
+// Tables with multiple keys need changes in VALIDATE.
+InterviewAttendanceLineTbl.VALIDATE("Interview No.", InterviewAttendanceLineTbl."Interview No.");
+InterviewAttendanceLineTbl.VALIDATE("Employee No.", InterviewAttendanceLineTbl."Employee No.");
+
+InterviewAttendanceHeaderTbl.RESET;
+InterviewAttendanceHeaderTbl.SETFILTER("Interview No", InterViewID);
+IF InterviewAttendanceHeaderTbl.FINDFIRST THEN  BEGIN
+  InterviewAttendanceLineTbl."Interview No." := InterviewAttendanceHeaderTbl."Interview No";
+  END;
+
+EmployeeTbl.RESET;
+EmployeeTbl.SETFILTER("No.", EmployeeID);
+IF EmployeeTbl.FINDFIRST THEN BEGIN
+  InterviewAttendanceLineTbl."Employee No." := EmployeeTbl."No.";
+  InterviewAttendanceLineTbl."Employee Email":= EmployeeTbl."E-Mail";
+  InterviewAttendanceLineTbl."Employee Name":= EmployeeTbl."First Name"+''+EmployeeTbl."Middle Name"+''+EmployeeTbl."Last Name";;
+  END;
+
+
+// Auto increment field
+// InterviewAttendanceLineTbl."Line No" := LineNo;
+ 
+InterviewAttendanceLineTbl.Comments := Comments;  
+ 
+InterviewAttendanceLineTbl.Closed := Closed;
+
+InterviewAttendanceLineTbl.INSERT(TRUE);
+Result := InterviewAttendanceLineSerializer(InterviewAttendanceLineTbl);
+Result := ResponseFormat(200, Result, 'InterviewAttendanceLine was created successfully');
+
+[External] GetInterviewAttendanceLineRange() Result : Text
+Result := '[';
+
+InterviewAttendanceLineTbl.RESET;
+REPEAT 
+    Result += InterviewAttendanceLineSerializer(InterviewAttendanceLineTbl);
+    Result += ',';
+UNTIL InterviewAttendanceLineTbl.NEXT = 0;
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+
+Result := ResponseFormat(200, Result, 'List for Interview Attendance Lines retrieved successfully.');
+
+[External] GetInterviewAttendanceLine(InterviewID : Code[20];EmployeeID : Code[20]) Result : Text
+InterviewAttendanceLineTbl.RESET;
+InterviewAttendanceLineTbl.SETFILTER("Interview No.", InterviewID);
+InterviewAttendanceLineTbl.SETFILTER("Employee No.", EmployeeID);
+
+IF InterviewAttendanceLineTbl.FINDFIRST THEN BEGIN
+   Result := InterviewAttendanceLineSerializer(InterviewAttendanceLineTbl);
+   Result := ResponseFormat(200, Result, 'Interview Attendance Line was found.');
+END ELSE  BEGIN
+  Result :=  EmptyInterviewAttendanceLine();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateInterviewAttendanceLine(OldInterViewID : Code[20];OldEmployeeID : Code[20];InterViewID : Code[20];EmployeeID : Code[20];Comments : Text;Closed : Boolean) Result : Text
+
+InterviewAttendanceLineTbl.RESET;
+
+InterviewAttendanceLineTbl.SETFILTER("Interview No.", OldInterViewID);
+InterviewAttendanceLineTbl.SETFILTER("Employee No.", OldEmployeeID);
+
+IF InterviewAttendanceLineTbl.FINDFIRST THEN BEGIN
+  InterviewAttendanceHeaderTbl.RESET;
+  InterviewAttendanceHeaderTbl.SETFILTER("Interview No", InterViewID);
+  IF InterviewAttendanceHeaderTbl.FINDFIRST THEN  BEGIN
+    InterviewAttendanceLineTbl."Interview No." := InterviewAttendanceHeaderTbl."Interview No";
+    END;
+
+  EmployeeTbl.RESET;
+  EmployeeTbl.SETFILTER("No.", EmployeeID);
+  IF EmployeeTbl.FINDFIRST THEN BEGIN
+    InterviewAttendanceLineTbl."Employee No." := EmployeeTbl."No.";
+    InterviewAttendanceLineTbl."Employee Email":= EmployeeTbl."E-Mail";
+    InterviewAttendanceLineTbl."Employee Name":= EmployeeTbl."First Name"+''+EmployeeTbl."Middle Name"+''+EmployeeTbl."Last Name";;
+    END;
+
+  // Auto increment field
+  // InterviewAttendanceLineTbl."Line No" := LineNo;
+ 
+  InterviewAttendanceLineTbl.Comments := Comments;  
+ 
+  InterviewAttendanceLineTbl.Closed := Closed;
+
+  InterviewAttendanceLineTbl.MODIFY;
+  Result := InterviewAttendanceLineSerializer(InterviewAttendanceLineTbl);
+  Result := ResponseFormat(200, Result, 'InterviewAttendanceLine was update successfully.');
+
+   
+END ELSE  BEGIN
+  Result :=  EmptyInterviewAttendanceLine();
+  Result := ResponseFormat(404, Result, 'InterviewAttendanceLine was not found.');
+END;
+
+[External] DeleteInterviewAttendanceLine(InterviewID : Code[20];EmployeeID : Code[20]) Result : Text
+InterviewAttendanceLineTbl.RESET;
+
+InterviewAttendanceLineTbl.SETFILTER("Interview No.", InterviewID);
+InterviewAttendanceLineTbl.SETFILTER("Employee No.", EmployeeID);
+
+IF InterviewAttendanceLineTbl.FINDFIRST THEN BEGIN
+   InterviewAttendanceLineTbl.DELETE;
+   
+   Result := ResponseFormat(200, '', 'Interview Attendance Line was deleted successfully');
+
+END ELSE  BEGIN
+  Result :=  EmptyInterviewAttendanceLine();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+  END;
+
+LOCAL InterviewAttendanceLineSerializer(InterviewAttendanceLineTbl : Record "Interview Attendance Line") Result : Text
+Result := '{'; 
+Result += '\"LineNo\":'+FORMAT(InterviewAttendanceLineTbl."Line No")+',';
+Result += '\"InterviewNo\":\"'+FORMAT(InterviewAttendanceLineTbl."Interview No.")+'\",';
+Result += '\"EmployeeNo\":\"'+FORMAT(InterviewAttendanceLineTbl."Employee No.")+'\",';
+Result += '\"Comments\":\"'+FORMAT(InterviewAttendanceLineTbl.Comments)+'\",';
+Result += '\"Closed\":'+JsonBoolean(InterviewAttendanceLineTbl.Closed)+'';
+Result += '}'; 
+
+LOCAL EmptyInterviewAttendanceLine() Result : Text
+InterviewAttendanceLineTbl.INIT;
+
+InterviewAttendanceLineTbl."Interview No." := 'N/A';
+InterviewAttendanceLineTbl."Employee No." := 'N/A';
+
+Result:= InterviewAttendanceLineSerializer(InterviewAttendanceLineTbl);
+
+LOCAL ---------------------------------------------- Interview Committee Dep Header  ----------------------------------------------()
+
+[External] CreateInterviewCommitteeDepHeader(DeptCommitteeName : Text) Result : Text
+InterviewCommitteeDepHeaderTbl.INIT;
+InterviewCommitteeDepHeaderTbl.VALIDATE("Department Code", InterviewCommitteeDepHeaderTbl."Department Code");
+
+InterviewCommitteeDepHeaderTbl."Dept Committee Name" := DeptCommitteeName;
+
+InterviewCommitteeDepHeaderTbl.INSERT(TRUE);
+Result := InterviewCommitteeDepHeaderSerializer(InterviewCommitteeDepHeaderTbl);
+Result := ResponseFormat(200, Result, 'InterviewCommitteeDepHeader was created successfully');
+
+[External] GetInterviewCommitteeDepHeaderRange() Result : Text
+Result := '[';
+
+InterviewCommitteeDepHeaderTbl.RESET;
+REPEAT 
+    Result += InterviewCommitteeDepHeaderSerializer(InterviewCommitteeDepHeaderTbl);
+    Result += ',';
+UNTIL InterviewCommitteeDepHeaderTbl.NEXT = 0;
+
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+Result := ResponseFormat(200, Result, 'List for InterviewCommitteeDepHeader retrieved successfully.');
+
+[External] GetInterviewCommitteeDepHeader(InterviewCommitteeDepHeaderID : Code[20]) Result : Text
+InterviewCommitteeDepHeaderTbl.RESET;
+InterviewCommitteeDepHeaderTbl.SETFILTER("Department Code", InterviewCommitteeDepHeaderID);
+
+IF InterviewCommitteeDepHeaderTbl.FINDFIRST THEN BEGIN
+   Result := InterviewCommitteeDepHeaderSerializer(InterviewCommitteeDepHeaderTbl);
+   Result := ResponseFormat(200, Result, 'InterviewCommitteeDepHeader was found.');
+END ELSE  BEGIN
+  Result :=  EmptyInterviewCommitteeDepHeader();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateInterviewCommitteeDepHeader(InterviewCommitteeDepHeaderID : Code[20];DeptCommitteeName : Text) Result : Text
+InterviewCommitteeDepHeaderTbl.RESET;
+InterviewCommitteeDepHeaderTbl.SETFILTER("Department Code", InterviewCommitteeDepHeaderID);
+
+IF InterviewCommitteeDepHeaderTbl.FINDFIRST THEN BEGIN
+
+    InterviewCommitteeDepHeaderTbl."Dept Committee Name" := DeptCommitteeName;
+
+    InterviewCommitteeDepHeaderTbl.MODIFY;
+    Result := InterviewCommitteeDepHeaderSerializer(InterviewCommitteeDepHeaderTbl);
+    Result := ResponseFormat(200, Result, 'InterviewCommitteeDepHeader was update successfully.');
+
+END ELSE  BEGIN
+  Result :=  EmptyInterviewCommitteeDepHeader();
+  Result := ResponseFormat(404, Result, 'InterviewCommitteeDepHeader was not found.');
+
+END;
+
+[External] DeleteInterviewCommitteeDepHeader(InterviewCommitteeDepHeaderID : Code[20]) Result : Text
+InterviewCommitteeDepHeaderTbl.RESET;
+
+InterviewCommitteeDepHeaderTbl.SETFILTER("Department Code", InterviewCommitteeDepHeaderID);
+
+IF InterviewCommitteeDepHeaderTbl.FINDFIRST THEN BEGIN
+   InterviewCommitteeDepHeaderTbl.DELETE;
+   Result := ResponseFormat(200, '', 'InterviewCommitteeDepHeader was deleted successfully');
+
+END ELSE  BEGIN
+  Result :=  EmptyInterviewCommitteeDepHeader();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+  END;
+
+LOCAL InterviewCommitteeDepHeaderSerializer(InterviewCommitteeDepHeaderTbl : Record "Interview Committee Dep Header") Result : Text
+Result := '{'; 
+Result += '\"DepartmentCode\":\"'+FORMAT(InterviewCommitteeDepHeaderTbl."Department Code")+'\",';
+Result += '\"DeptCommitteeName\":\"'+FORMAT(InterviewCommitteeDepHeaderTbl."Dept Committee Name")+'\"';
+Result += '}'; 
+
+LOCAL EmptyInterviewCommitteeDepHeader() Result : Text
+InterviewCommitteeDepHeaderTbl.INIT;
+InterviewCommitteeDepHeaderTbl."Department Code" := 'N/A';
+Result:= InterviewCommitteeDepHeaderSerializer(InterviewCommitteeDepHeaderTbl);
+
+LOCAL ---------------------------------------------- Interview Committee Dept Line  ----------------------------------------------()
+
+[External] CreateInterviewCommitteeDeptLine(InterviewCommitteeDepHeaderID : Code[20];EmployeeID : Code[20]) Result : Text
+InterviewCommitteeDeptLineTbl.INIT;
+
+// Tables with multiple keys need changes in VALIDATE.
+InterviewCommitteeDeptLineTbl.VALIDATE(Code, InterviewCommitteeDeptLineTbl.Code);
+InterviewCommitteeDeptLineTbl.VALIDATE("Employee No.", InterviewCommitteeDeptLineTbl."Employee No.");
+
+InterviewCommitteeDepHeaderTbl.RESET;
+InterviewCommitteeDepHeaderTbl.SETFILTER("Department Code", InterviewCommitteeDepHeaderID);
+IF InterviewCommitteeDepHeaderTbl.FINDFIRST THEN BEGIN
+  InterviewCommitteeDeptLineTbl.Code := InterviewCommitteeDepHeaderTbl."Department Code";
+  END;
+
+
+EmployeeTbl.RESET;
+EmployeeTbl.SETFILTER("No.", EmployeeID);
+IF EmployeeTbl.FINDFIRST THEN BEGIN 
+  InterviewCommitteeDeptLineTbl."Employee No." := EmployeeTbl."No.";
+  InterviewCommitteeDeptLineTbl."Employee Email" := EmployeeTbl."E-Mail";
+  InterviewCommitteeDeptLineTbl."Employee Name":= EmployeeTbl."First Name"+''+EmployeeTbl."Middle Name"+''+EmployeeTbl."Last Name";;
+  END;
+
+
+InterviewCommitteeDeptLineTbl.INSERT(TRUE);
+Result := InterviewCommitteeDeptLineSerializer(InterviewCommitteeDeptLineTbl);
+Result := ResponseFormat(200, Result, 'InterviewCommitteeDeptLine was created successfully');
+
+[External] GetInterviewCommitteeDeptLineRange() Result : Text
+Result := '[';
+
+InterviewCommitteeDeptLineTbl.RESET;
+REPEAT 
+    Result += InterviewCommitteeDeptLineSerializer(InterviewCommitteeDeptLineTbl);
+    Result += ',';
+UNTIL InterviewCommitteeDeptLineTbl.NEXT = 0;
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+Result := ResponseFormat(200, Result, 'List for InterviewCommitteeDeptLine retrieved successfully.');
+
+[External] GetInterviewCommitteeDeptLine(InterviewCommitteeDepHeaderID : Code[20];EmployeeID : Code[20]) Result : Text
+InterviewCommitteeDeptLineTbl.RESET;
+
+InterviewCommitteeDeptLineTbl.SETFILTER(Code, InterviewCommitteeDepHeaderID);
+InterviewCommitteeDeptLineTbl.SETFILTER("Employee No.", EmployeeID);
+IF InterviewCommitteeDeptLineTbl.FINDFIRST THEN BEGIN
+   Result := InterviewCommitteeDeptLineSerializer(InterviewCommitteeDeptLineTbl);
+   Result := ResponseFormat(200, Result, 'InterviewCommitteeDeptLine was found.');
+END ELSE  BEGIN
+  Result :=  EmptyInterviewCommitteeDeptLine();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateInterviewCommitteeDeptLine(OldInterviewCommitteeDepHeaderID : Code[20];OldEmployeeID : Code[20];InterviewCommitteeDepHeaderID : Code[20];EmployeeID : Code[20]) Result : Text
+
+InterviewCommitteeDeptLineTbl.RESET;
+
+InterviewCommitteeDeptLineTbl.SETFILTER(Code, InterviewCommitteeDepHeaderID);
+InterviewCommitteeDeptLineTbl.SETFILTER("Employee No.", EmployeeID);
+IF InterviewCommitteeDeptLineTbl.FINDFIRST THEN BEGIN
+
+  InterviewCommitteeDepHeaderTbl.RESET;
+  InterviewCommitteeDepHeaderTbl.SETFILTER("Department Code", OldInterviewCommitteeDepHeaderID);
+  IF InterviewCommitteeDepHeaderTbl.FINDFIRST THEN BEGIN
+    InterviewCommitteeDeptLineTbl.Code := InterviewCommitteeDepHeaderTbl."Department Code";
+    END;
+
+
+  EmployeeTbl.RESET;
+  EmployeeTbl.SETFILTER("No.", OldEmployeeID);
+  IF EmployeeTbl.FINDFIRST THEN BEGIN 
+    InterviewCommitteeDeptLineTbl."Employee No." := EmployeeTbl."No.";
+    InterviewCommitteeDeptLineTbl."Employee Email" := EmployeeTbl."E-Mail";
+    InterviewCommitteeDeptLineTbl."Employee Name":= EmployeeTbl."First Name"+''+EmployeeTbl."Middle Name"+''+EmployeeTbl."Last Name";;
+    END;
+
+    InterviewCommitteeDeptLineTbl.MODIFY;
+    Result := InterviewCommitteeDeptLineSerializer(InterviewCommitteeDeptLineTbl);
+    Result := ResponseFormat(200, Result, 'InterviewCommitteeDeptLine was update successfully.');
+   
+END ELSE  BEGIN
+  Result :=  EmptyInterviewCommitteeDeptLine();
+  Result := ResponseFormat(404, Result, 'InterviewCommitteeDeptLine was not found.');
+
+END;
+
+[External] DeleteInterviewCommitteeDeptLine(InterviewCommitteeDepHeaderID : Code[20];EmployeeID : Code[20]) Result : Text
+InterviewCommitteeDeptLineTbl.RESET;
+
+InterviewCommitteeDeptLineTbl.SETFILTER(Code, InterviewCommitteeDepHeaderID);
+InterviewCommitteeDeptLineTbl.SETFILTER("Employee No.", EmployeeID);
+IF InterviewCommitteeDeptLineTbl.FINDFIRST THEN BEGIN
+   InterviewCommitteeDeptLineTbl.DELETE;
+
+   Result := ResponseFormat(200, '', 'InterviewCommitteeDeptLine was deleted successfully');
+
+END ELSE  BEGIN
+  Result :=  EmptyInterviewCommitteeDeptLine();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+  END;
+
+LOCAL InterviewCommitteeDeptLineSerializer(InterviewCommitteeDeptLineTbl : Record "Interview Committee Dept Line") Result : Text
+// Create the JsonBoolean function -> converts CAL Bools to 'true' or 'false'
+Result := '{'; 
+Result += '\"LineNo\":'+FORMAT(InterviewCommitteeDeptLineTbl."Line No")+',';
+Result += '\"DepartmentCode\":\"'+FORMAT(InterviewCommitteeDeptLineTbl.Code)+'\",';
+Result += '\"EmployeeNo\":\"'+FORMAT(InterviewCommitteeDeptLineTbl."Employee No.")+'\",';
+Result += '\"EmployeeName\":\"'+FORMAT(InterviewCommitteeDeptLineTbl."Employee Name")+'\",';
+Result += '\"EmployeeEmail\":\"'+FORMAT(InterviewCommitteeDeptLineTbl."Employee Email")+'\"';
+Result += '}'; 
+
+LOCAL EmptyInterviewCommitteeDeptLine() Result : Text
+InterviewCommitteeDeptLineTbl.INIT;
+
+InterviewCommitteeDeptLineTbl.Code := 'N/A';
+InterviewCommitteeDeptLineTbl."Employee No." := 'N/A';
+
+Result:= InterviewCommitteeDeptLineSerializer(InterviewCommitteeDeptLineTbl);

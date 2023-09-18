@@ -1,0 +1,891 @@
+Documentation()
+{
+
+    HR Job Grades utilize HR Lookup Values table no the HR Grade table.
+    utilize the HR Lookup Values CRUD for Job grade opperations. 
+}
+
+OnRun()
+
+LOCAL JsonBoolean(BoolVar : Boolean) Result : Text
+IF BoolVar THEN 
+  Result := 'true'
+ELSE
+  Result := 'false';
+
+LOCAL ResponseFormat(status : Integer;payload : Text;message : Text) Result : Text
+Result := '{';
+Result += '"Status":'+FORMAT(status)+',';
+IF payload<>'' THEN 
+  Result += '"Payload":"'+FORMAT(payload)+'",';
+Result += '"Message":"'+FORMAT(message)+'"';
+Result += '}';
+
+LOCAL ---------------------------- HR Job  ----------------------------()
+
+[External] CreateHRJob(JobTitle : Code[200];JobGrade : Code[20];MaximumPositions : Integer;SupervisorJobNo : Code[20];AppraisalLevel : Text;Active : Boolean;Status : Text) Result : Text
+HRJobTbl.INIT;
+
+// Tables with multiple keys need changes in VALIDATE.
+HRJobTbl.VALIDATE("No.", HRJobTbl."No.");
+
+HRJobTbl."Job Title" := JobTitle;
+
+HRJobLookupValueTbl.RESET;
+// Change the key Field Name
+HRJobLookupValueTbl.SETFILTER(Option, 'Job Grade');
+HRJobLookupValueTbl.SETFILTER(Code, JobGrade);
+IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+    HRJobTbl."Job Title" := HRJobLookupValueTbl.Code;
+    HRJobTbl."Job Title":= HRJobLookupValueTbl.Description;
+END;
+ 
+HRJobTbl."Maximum Positions" := MaximumPositions;
+
+
+SupervisorJobTbl.RESET;
+SupervisorJobTbl.SETFILTER("No.", SupervisorJobNo);
+IF SupervisorJobTbl.FINDFIRST THEN BEGIN
+    HRJobTbl."Supervisor Job No." := SupervisorJobTbl."No.";
+    HRJobTbl."Supervisor Job Title" := SupervisorJobTbl."Job Title";
+END;
+
+
+ 
+CASE TRUE OF 
+    LOWERCASE(AppraisalLevel) = ' ':
+        HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::" ";
+    LOWERCASE(AppraisalLevel) = 'organizational':
+        HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::Organizational;
+    LOWERCASE(AppraisalLevel) = 'departmental':
+        HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::Departmental;
+    LOWERCASE(AppraisalLevel) = 'divisional':
+        HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::Divisional;
+    LOWERCASE(AppraisalLevel) = 'individual':
+        HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::Individual;
+
+    END;
+
+
+ 
+HRJobTbl.Active := Active;
+
+
+ 
+CASE TRUE OF 
+    LOWERCASE(Status) = 'open':
+        HRJobTbl.Status := HRJobTbl.Status::Open;
+  // Closed options.
+  {
+    LOWERCASE(Status) = 'pending approval':
+        HRJobTbl.Status := HRJobTbl.Status::"Pending Approval";
+    LOWERCASE(Status) = 'released':
+        HRJobTbl.Status := HRJobTbl.Status::Released;
+    LOWERCASE(Status) = 'rejected':
+        HRJobTbl.Status := HRJobTbl.Status::Rejected;
+   }
+    END;
+
+
+
+HRJobTbl.INSERT(TRUE);
+Result := HRJobSerializer(HRJobTbl);
+Result := ResponseFormat(200, Result, 'HRJob was created successfully');
+
+[External] GetHRJobRange() Result : Text
+Result := '[';
+
+JobTbl.RESET;
+REPEAT 
+    Result += HRJobSerializer(JobTbl);
+    Result += ',';
+UNTIL JobTbl.NEXT = 0;
+
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+Result := ResponseFormat(200, Result, 'List for Job retrieved successfully.');
+
+[External] GetHRJob(JobID : Code[20]) Result : Text
+JobTbl.RESET;
+JobTbl.SETFILTER("No.", JobID);
+
+IF JobTbl.FINDFIRST THEN BEGIN
+   Result := HRJobSerializer(JobTbl);
+   Result := ResponseFormat(200, Result, 'Job was found.');
+END ELSE  BEGIN
+  Result :=  EmptyHRJob();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateHRJob(JobID : Code[20];JobTitle : Code[200];JobGrade : Code[20];MaximumPositions : Integer;SupervisorJobNo : Code[20];AppraisalLevel : Text;Active : Boolean;Status : Text) Result : Text
+HRJobTbl.RESET;
+HRJobTbl.SETFILTER("No.", JobID);
+
+IF HRJobTbl.FINDFIRST THEN BEGIN
+    HRJobTbl."Job Title" := JobTitle;
+
+    HRJobLookupValueTbl.RESET;
+    HRJobLookupValueTbl.SETFILTER(Option, 'Job Grade');
+    HRJobLookupValueTbl.SETFILTER(Code, JobGrade);
+    IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+        HRJobTbl."Job Title" := HRJobLookupValueTbl.Code;
+        HRJobTbl."Job Title":= HRJobLookupValueTbl.Description;
+    END;
+ 
+    HRJobTbl."Maximum Positions" := MaximumPositions;
+
+    SupervisorJobTbl.RESET;
+    SupervisorJobTbl.SETFILTER("No.", SupervisorJobNo);
+    IF SupervisorJobTbl.FINDFIRST THEN BEGIN
+        HRJobTbl."Supervisor Job No." := SupervisorJobTbl."No.";
+        HRJobTbl."Supervisor Job Title" := SupervisorJobTbl."Job Title";
+    END;
+ 
+    CASE TRUE OF 
+        LOWERCASE(AppraisalLevel) = ' ':
+            HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::" ";
+        LOWERCASE(AppraisalLevel) = 'organizational':
+            HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::Organizational;
+        LOWERCASE(AppraisalLevel) = 'departmental':
+            HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::Departmental;
+        LOWERCASE(AppraisalLevel) = 'divisional':
+            HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::Divisional;
+        LOWERCASE(AppraisalLevel) = 'individual':
+            HRJobTbl."Appraisal Level" := HRJobTbl."Appraisal Level"::Individual;
+        END;
+
+    HRJobTbl.Active := Active;
+
+    CASE TRUE OF 
+        LOWERCASE(Status) = 'open':
+            HRJobTbl.Status := HRJobTbl.Status::Open;
+        LOWERCASE(Status) = 'pending approval':
+            HRJobTbl.Status := HRJobTbl.Status::"Pending Approval";
+        LOWERCASE(Status) = 'released':
+            HRJobTbl.Status := HRJobTbl.Status::Released;
+        LOWERCASE(Status) = 'rejected':
+            HRJobTbl.Status := HRJobTbl.Status::Rejected;
+        END;
+    
+
+    HRJobTbl.MODIFY;
+    Result := HRJobSerializer(HRJobTbl);
+    Result := ResponseFormat(200, Result, 'Job was update successfully.');
+   
+END ELSE  BEGIN
+  Result :=  EmptyHRJob();
+  Result := ResponseFormat(404, Result, 'Job was not found.');
+
+END;
+  
+
+[External] DeleteHRJob(HRJobID : Code[20]) Result : Text
+
+
+HRJobTbl.RESET;
+
+HRJobTbl.SETFILTER("No.", HRJobID);
+
+IF HRJobTbl.FINDFIRST THEN BEGIN
+   HRJobTbl.DELETE;
+   
+   Result := ResponseFormat(200, '', 'HRJob was deleted successfully');
+
+END ELSE  BEGIN
+  Result :=  EmptyHRJob();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+  END;
+
+LOCAL HRJobSerializer(HRJobTbl : Record "HR Jobs") Result : Text
+Result := '{'; 
+Result += '\"No\":\"'+FORMAT(HRJobTbl."No.")+'\",';
+Result += '\"JobTitle\":\"'+FORMAT(HRJobTbl."Job Title")+'\",';
+Result += '\"JobGrade\":\"'+FORMAT(HRJobTbl."Job Grade")+'\",';
+Result += '\"MaximumPositions\":'+FORMAT(HRJobTbl."Maximum Positions")+',';
+Result += '\"OccupiedPositions\":'+FORMAT(HRJobTbl."Occupied Positions")+',';
+Result += '\"VacantPositions\":'+FORMAT(HRJobTbl."Vacant Positions")+',';
+Result += '\"SupervisorJobNo\":\"'+FORMAT(HRJobTbl."Supervisor Job No.")+'\",';
+Result += '\"SupervisorJobTitle\":\"'+FORMAT(HRJobTbl."Supervisor Job Title")+'\",';
+Result += '\"AppraisalLevel\":\"'+FORMAT(HRJobTbl."Appraisal Level")+'\",';
+Result += '\"Active\":'+JsonBoolean(HRJobTbl.Active)+',';
+Result += '\"Status\":\"'+FORMAT(HRJobTbl.Status)+'\"';
+Result += '}'; 
+
+LOCAL EmptyHRJob() Result : Text
+HRJobTbl.INIT;
+HRJobTbl."No." := 'N/A';
+Result:= HRJobSerializer(HRJobTbl);
+
+LOCAL ---------------------------- HR Job Qualification ----------------------------()
+
+[External] CreateHRJobQualification(HRJobID : Code[20];QualificationTypeID : Code[20];Description : Text;Mandatory : Boolean) Result : Text
+HRJobQualificationTbl.INIT;
+
+HRJobTbl.RESET;
+HRJobTbl.SETFILTER("No.", HRJobID);
+IF HRJobTbl.FINDFIRST THEN BEGIN
+  HRJobQualificationTbl."Job No." := HRJobTbl."No.";
+  END;
+
+HRJobLookupValueTbl.RESET;
+HRJobLookupValueTbl.SETFILTER(Option, 'Qualification|Other Certifications');
+HRJobLookupValueTbl.SETFILTER(Code, QualificationTypeID);
+IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+
+  HRJobQualificationTbl."Qualification Code" := HRJobLookupValueTbl.Code;
+  END;
+  
+HRJobQualificationTbl.Description := Description;
+
+HRJobQualificationTbl.Mandatory := Mandatory;
+
+HRJobQualificationTbl.INSERT(TRUE);
+Result := HRJobQualificationSerializer(HRJobQualificationTbl);
+Result := ResponseFormat(200, Result, 'Job Qualification was created successfully');
+
+[External] GetHRJobQualificationRange() Result : Text
+Result := '[';
+
+HRJobQualificationTbl.RESET;
+REPEAT 
+    Result += HRJobQualificationSerializer(HRJobQualificationTbl);
+    Result += ',';
+UNTIL HRJobQualificationTbl.NEXT = 0;
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+Result := ResponseFormat(200, Result, 'List for HR Job Qualification retrieved successfully.');
+
+[External] GetHRJobQualification(JobID : Code[20];QualificationID : Code[20];LineNo : Text) Result : Text
+HRJobQualificationTbl.RESET;
+
+HRJobQualificationTbl.SETFILTER("Job No.", JobID);
+HRJobQualificationTbl.SETFILTER("Qualification Code", QualificationID);
+HRJobQualificationTbl.SETFILTER("Line No", LineNo);
+IF HRJobQualificationTbl.FINDFIRST THEN BEGIN
+   Result := HRJobQualificationSerializer(HRJobQualificationTbl);
+   Result := ResponseFormat(200, Result, 'HRJobQualification was found.');
+END ELSE  BEGIN
+  Result :=  EmptyHRJobQualification();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateHRJobQualification(OldHRJobID : Code[20];OldQualificationTypeID : Code[20];LineNo : Text;HRJobID : Code[20];QualificationTypeID : Code[20];Description : Text;Mandatory : Boolean) Result : Text
+HRJobQualificationTbl.RESET;
+
+HRJobQualificationTbl.SETFILTER("Job No.", OldHRJobID);
+HRJobQualificationTbl.SETFILTER("Qualification Code", OldQualificationTypeID);
+HRJobQualificationTbl.SETFILTER("Line No", LineNo);
+IF HRJobQualificationTbl.FINDFIRST THEN BEGIN
+    
+  HRJobTbl.RESET;
+  HRJobTbl.SETFILTER("No.", HRJobID);
+  IF HRJobTbl.FINDFIRST THEN BEGIN
+    HRJobQualificationTbl."Job No." := HRJobTbl."No.";
+    END;
+
+  HRJobLookupValueTbl.RESET;
+  HRJobLookupValueTbl.SETFILTER(Option, 'Qualification|Other Certifications');
+  HRJobLookupValueTbl.SETFILTER(Code, QualificationTypeID);
+  IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+    HRJobQualificationTbl."Qualification Code" := HRJobLookupValueTbl.Code;
+    END;
+
+  HRJobQualificationTbl.Description := Description;
+
+  HRJobQualificationTbl.Mandatory := Mandatory;
+
+  
+  HRJobQualificationTbl.MODIFY;
+  Result := HRJobQualificationSerializer(HRJobQualificationTbl);
+  Result := ResponseFormat(200, Result, 'HRJobQualification was update successfully.');
+   
+END ELSE  BEGIN
+  Result :=  EmptyHRJobQualification();
+  Result := ResponseFormat(404, Result, 'HRJobQualification was not found.');
+
+END;
+  
+
+[External] DeleteHRJobQualification(HRJobID : Code[20];QualificationTypeID : Code[20];LineNo : Text) Result : Text
+
+HRJobQualificationTbl.RESET;
+
+HRJobQualificationTbl.SETFILTER("Job No.", HRJobID);
+HRJobQualificationTbl.SETFILTER("Qualification Code", QualificationTypeID);
+HRJobQualificationTbl.SETFILTER("Line No", LineNo);
+
+IF HRJobQualificationTbl.FINDFIRST THEN BEGIN
+   HRJobQualificationTbl.DELETE;
+   
+   Result := ResponseFormat(200, '', 'HRJobQualification was deleted successfully');
+
+END ELSE  BEGIN
+  Result :=  EmptyHRJobQualification();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+  END;
+
+LOCAL HRJobQualificationSerializer(HRJobQualificationTbl : Record "HR Job Qualifications") Result : Text
+// Create the JsonBoolean function -> converts CAL Bools to 'true' or 'false'
+Result := '{'; 
+Result += '\"JobNo\":\"'+FORMAT(HRJobQualificationTbl."Job No.")+'\",';
+Result += '\"QualificationCode\":\"'+FORMAT(HRJobQualificationTbl."Qualification Code")+'\",';
+Result += '\"Description\":\"'+FORMAT(HRJobQualificationTbl.Description)+'\",';
+Result += '\"Mandatory\":'+JsonBoolean(HRJobQualificationTbl.Mandatory)+',';
+Result += '\"LineNo\":'+FORMAT(HRJobQualificationTbl."Line No")+'';
+Result += '}'; 
+
+LOCAL EmptyHRJobQualification() Result : Text
+HRJobQualificationTbl.INIT;
+
+HRJobQualificationTbl."Job No." := 'N/A';
+HRJobQualificationTbl."Qualification Code" := 'N/A';
+
+
+Result:= HRJobQualificationSerializer(HRJobQualificationTbl);
+
+LOCAL ---------------------------- HR Job Requirement ----------------------------()
+
+[External] CreateHRJobRequirement(HRJobID : Code[20];RequirementTypeID : Code[20];Description : Text;Mandatory : Boolean;NoofYears : Integer) Result : Text
+HRJobRequirementTbl.INIT;
+
+HRJobTbl.RESET;
+HRJobTbl.SETFILTER("No.", HRJobID);
+IF HRJobTbl.FINDFIRST THEN BEGIN
+  HRJobRequirementTbl."Job No." := HRJobTbl."No.";
+  END;
+
+HRJobLookupValueTbl.RESET;
+HRJobLookupValueTbl.SETFILTER(Option, 'Requirement');
+HRJobLookupValueTbl.SETFILTER(Blocked, 'No');
+HRJobLookupValueTbl.SETFILTER(Code, RequirementTypeID);
+IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+  HRJobRequirementTbl."Requirement Code" := HRJobLookupValueTbl.Code;
+  END;
+
+HRJobRequirementTbl.Description := Description;
+HRJobRequirementTbl.Mandatory := Mandatory;
+HRJobRequirementTbl."No. of Years" := NoofYears;
+
+
+HRJobRequirementTbl.INSERT(TRUE);
+Result := HRJobRequirementSerializer(HRJobRequirementTbl);
+Result := ResponseFormat(200, Result, 'HRJobRequirement was created successfully');
+
+[External] GetHRJobRequirementRange() Result : Text
+Result := '[';
+
+HRJobRequirementTbl.RESET;
+REPEAT 
+    Result += HRJobRequirementSerializer(HRJobRequirementTbl);
+    Result += ',';
+UNTIL HRJobRequirementTbl.NEXT = 0;
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+Result := ResponseFormat(200, Result, 'List for HRJobRequirement retrieved successfully.');
+
+[External] GetHRJobRequirement(JobID : Code[20];Mandatory : Boolean;LineNo : Text) Result : Text
+HRJobRequirementTbl.RESET;
+HRJobRequirementTbl.SETFILTER("Job No.", JobID);
+
+IF Mandatory THEN 
+  HRJobRequirementTbl.SETFILTER(Mandatory, 'Yes')
+ELSE
+  HRJobRequirementTbl.SETFILTER(Mandatory, 'No');
+HRJobRequirementTbl.SETFILTER("Line No", LineNo);
+
+IF HRJobRequirementTbl.FINDFIRST THEN BEGIN
+   Result := HRJobRequirementSerializer(HRJobRequirementTbl);
+   Result := ResponseFormat(200, Result, 'HR Job Requirement was found.');
+END ELSE  BEGIN
+  Result :=  EmptyHRJobRequirement();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateHRJobRequirement(OldHRJobID : Code[20];OldMandatory : Boolean;LineNo : Text;HRJobID : Code[20];RequirementTypeID : Code[20];Description : Text;Mandatory : Boolean;NoofYears : Integer) Result : Text
+HRJobRequirementTbl.RESET;
+HRJobRequirementTbl.SETFILTER("Job No.", OldHRJobID);
+
+IF OldMandatory THEN
+HRJobRequirementTbl.SETFILTER(Mandatory, 'Yes')
+ELSE
+HRJobRequirementTbl.SETFILTER(Mandatory, 'No');
+
+HRJobRequirementTbl.SETFILTER("Line No", LineNo);
+
+IF HRJobRequirementTbl.FINDFIRST THEN BEGIN
+
+  
+  HRJobTbl.RESET;
+  HRJobTbl.SETFILTER("No.", HRJobID);
+  IF HRJobTbl.FINDFIRST THEN BEGIN
+    HRJobRequirementTbl."Job No." := HRJobTbl."No.";
+    END;
+
+  HRJobLookupValueTbl.RESET;
+  HRJobLookupValueTbl.SETFILTER(Option, 'Requirement');
+  HRJobLookupValueTbl.SETFILTER(Blocked, 'No');
+  HRJobLookupValueTbl.SETFILTER(Code, RequirementTypeID);
+  IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+    HRJobRequirementTbl."Requirement Code" := HRJobLookupValueTbl.Code;
+    END;
+
+  HRJobRequirementTbl.Description := Description;
+  HRJobRequirementTbl.Mandatory := Mandatory;
+  HRJobRequirementTbl."No. of Years" := NoofYears;
+
+
+
+  HRJobRequirementTbl.MODIFY;
+  Result := HRJobRequirementSerializer(HRJobRequirementTbl);
+  Result := ResponseFormat(200, Result, 'HRJobRequirement was update successfully.');
+   
+END ELSE  BEGIN
+  Result :=  EmptyHRJobRequirement();
+  Result := ResponseFormat(404, Result, 'HRJobRequirement was not found.');
+
+END;
+  
+
+[External] DeleteHRJobRequirement(JobID : Code[20];Mandatory : Boolean;LineNo : Text) Result : Text
+HRJobRequirementTbl.RESET;
+
+HRJobRequirementTbl.SETFILTER("Job No.", JobID);
+IF Mandatory THEN
+HRJobRequirementTbl.SETFILTER(Mandatory, 'Yes')
+ELSE
+HRJobRequirementTbl.SETFILTER(Mandatory, 'No');
+
+HRJobRequirementTbl.SETFILTER("Line No", LineNo);
+
+IF HRJobRequirementTbl.FINDFIRST THEN BEGIN
+   HRJobRequirementTbl.DELETE;
+   
+   Result := ResponseFormat(200, '', 'HRJobRequirement was deleted successfully');
+
+END ELSE  BEGIN
+  Result :=  EmptyHRJobRequirement();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+  END;
+
+LOCAL HRJobRequirementSerializer(HRJobRequirementTbl : Record "HR Job Requirements") Result : Text
+Result := '{'; 
+Result += '\"JobNo\":\"'+FORMAT(HRJobRequirementTbl."Job No.")+'\",';
+Result += '\"RequirementCode\":\"'+FORMAT(HRJobRequirementTbl."Requirement Code")+'\",';
+Result += '\"Description\":\"'+FORMAT(HRJobRequirementTbl.Description)+'\",';
+Result += '\"Mandatory\":'+JsonBoolean(HRJobRequirementTbl.Mandatory)+',';
+Result += '\"LineNo\":'+FORMAT(HRJobRequirementTbl."Line No")+',';
+Result += '\"NoofYears\":'+FORMAT(HRJobRequirementTbl."No. of Years")+'';
+Result += '}'; 
+
+LOCAL EmptyHRJobRequirement() Result : Text
+HRJobRequirementTbl.INIT;
+
+HRJobRequirementTbl."Job No." := 'N/A';
+
+Result:= HRJobRequirementSerializer(HRJobRequirementTbl);
+
+LOCAL ---------------------------- HR Job Resposibilities ----------------------------()
+
+[External] CreateHRJobResponsibility(HRJobID : Code[20];ResponsibilityTypeID : Code[50];Description : Text) Result : Text
+HRJobResponsibilityTbl.INIT;
+
+HRJobTbl.RESET;
+HRJobTbl.SETFILTER("No.", HRJobID);
+IF HRJobTbl.FINDFIRST THEN BEGIN
+  HRJobResponsibilityTbl."Job No." := HRJobTbl."No.";
+  END; 
+
+
+HRJobLookupValueTbl.RESET;
+HRJobLookupValueTbl.SETFILTER(Option, 'Responsibility');
+HRJobLookupValueTbl.SETFILTER(Code, ResponsibilityTypeID);
+IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+  HRJobResponsibilityTbl."Responsibility Code" := HRJobLookupValueTbl.Code;
+  END;
+
+HRJobResponsibilityTbl.Description := Description;
+
+HRJobResponsibilityTbl.INSERT(TRUE);
+Result := HRJobResponsibilitySerializer(HRJobResponsibilityTbl);
+Result := ResponseFormat(200, Result, 'HR Job Responsibility was created successfully');
+
+[External] GetHRJobResponsibilityRange() Result : Text
+Result := '[';
+
+HRJobResponsibilityTbl.RESET;
+REPEAT 
+    Result += HRJobResponsibilitySerializer(HRJobResponsibilityTbl);
+    Result += ',';
+UNTIL HRJobResponsibilityTbl.NEXT = 0;
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+Result := ResponseFormat(200, Result, 'List for HR Job Responsibility retrieved successfully.');
+
+[External] GetHRJobResponsibility(HRJobID : Code[20];LineNo : Text) Result : Text
+HRJobResponsibilityTbl.RESET;
+HRJobResponsibilityTbl.SETFILTER("Job No.", HRJobID);
+HRJobResponsibilityTbl.SETFILTER("Line No", LineNo);
+IF HRJobResponsibilityTbl.FINDFIRST THEN BEGIN
+   Result := HRJobResponsibilitySerializer(HRJobResponsibilityTbl);
+   Result := ResponseFormat(200, Result, 'HR Job Responsibility was found.');
+END ELSE BEGIN
+  Result :=  EmptyHRJobResponsibility();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateHRJobResponsibility(OldHRJobID : Code[20];OldLineNo : Code[20];ResponsibilityTypeID : Code[50];Description : Text) Result : Text
+HRJobResponsibilityTbl.RESET;
+
+HRJobResponsibilityTbl.SETFILTER("Job No.", OldHRJobID);
+HRJobResponsibilityTbl.SETFILTER("Line No", OldLineNo);
+IF HRJobResponsibilityTbl.FINDFIRST THEN BEGIN
+
+  HRJobLookupValueTbl.RESET;
+  HRJobLookupValueTbl.SETFILTER(Option, 'Responsibility');
+  HRJobLookupValueTbl.SETFILTER(Code, ResponsibilityTypeID);
+  IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+    HRJobResponsibilityTbl."Responsibility Code" := HRJobLookupValueTbl.Code;
+    END;
+
+  HRJobResponsibilityTbl.Description := Description;
+
+  HRJobResponsibilityTbl.MODIFY;
+  Result := HRJobResponsibilitySerializer(HRJobResponsibilityTbl);
+  Result := ResponseFormat(200, Result, 'HRJobResponsibility was update successfully.');
+   
+END ELSE  BEGIN
+  Result :=  EmptyHRJobResponsibility();
+  Result := ResponseFormat(404, Result, 'HRJobResponsibility was not found.');
+
+END;
+
+[External] DeleteHRJobResponsibility(HRJobID : Code[20];LineNo : Text) Result : Text
+HRJobResponsibilityTbl.RESET;
+
+HRJobResponsibilityTbl.SETFILTER("Job No.", HRJobID);
+HRJobResponsibilityTbl.SETFILTER("Line No", LineNo);
+
+IF HRJobResponsibilityTbl.FINDFIRST THEN BEGIN
+   HRJobResponsibilityTbl.DELETE;
+   
+   Result := ResponseFormat(200, '', 'HRJobResponsibility was deleted successfully');
+
+END ELSE  BEGIN
+  Result :=  EmptyHRJobResponsibility();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+  END;
+
+LOCAL HRJobResponsibilitySerializer(HRJobResponsibilityTbl : Record "HR Job Responsibilities") Result : Text
+Result := '{'; 
+Result += '\"JobNo\":\"'+FORMAT(HRJobResponsibilityTbl."Job No.")+'\",';
+Result += '\"ResponsibilityCode\":\"'+FORMAT(HRJobResponsibilityTbl."Responsibility Code")+'\",';
+Result += '\"Description\":\"'+FORMAT(HRJobResponsibilityTbl.Description)+'\",';
+Result += '\"LineNo\":'+FORMAT(HRJobResponsibilityTbl."Line No")+'';
+Result += '}';
+ 
+
+LOCAL EmptyHRJobResponsibility() Result : Text
+HRJobResponsibilityTbl.INIT;
+HRJobResponsibilityTbl."Job No." := 'N/A';
+Result:= HRJobResponsibilitySerializer(HRJobResponsibilityTbl);
+
+LOCAL ---------------------------- HR Job Lookup Value ----------------------------()
+
+[External] CreateHRJobLookupValue(Option : Text;Description : Text;Blocked : Boolean;RequiredStage : Text) Result : Text
+HRJobLookupValueTbl.INIT;
+
+// Tables with multiple keys need changes in VALIDATE.
+HRJobLookupValueTbl.VALIDATE(Code, HRJobLookupValueTbl.Code);
+ 
+CASE TRUE OF 
+    LOWERCASE(Option) = 'qualification':
+        HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::Qualification;
+    LOWERCASE(Option) = 'requirement':
+        HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::Requirement;
+    LOWERCASE(Option) = 'responsibility':
+        HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::Responsibility;
+    LOWERCASE(Option) = 'job grade':
+        HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::"Job Grade";
+    LOWERCASE(Option) = 'checklist item':
+        HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::"Checklist Item";
+    LOWERCASE(Option) = 'other certifications':
+        HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::"Other Certifications";
+    LOWERCASE(Option) = 'job grade level':
+        HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::"Job Grade Level";
+    END;
+ 
+HRJobLookupValueTbl.Description := Description;
+
+HRJobLookupValueTbl.Blocked := Blocked;
+ 
+CASE TRUE OF 
+    LOWERCASE(RequiredStage) = ' ':
+        HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::" ";
+    LOWERCASE(RequiredStage) = 'employee creation':
+        HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::"Employee Creation";
+    LOWERCASE(RequiredStage) = 'interview approval':
+        HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::"Interview Approval";
+    LOWERCASE(RequiredStage) = 'training evaluation':
+        HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::"Training Evaluation";
+    LOWERCASE(RequiredStage) = 'employee requisition':
+        HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::"Employee Requisition";
+    END;
+
+HRJobLookupValueTbl.INSERT(TRUE);
+Result := HRJobLookupValueSerializer(HRJobLookupValueTbl);
+Result := ResponseFormat(200, Result, 'HRJobLookupValue was created successfully');
+
+[External] GetHRJobLookupValueRange() Result : Text
+Result := '[';
+
+HRJobLookupValueTbl.RESET;
+REPEAT 
+    Result += HRJobLookupValueSerializer(HRJobLookupValueTbl);
+    Result += ',';
+UNTIL HRJobLookupValueTbl.NEXT = 0;
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+Result := ResponseFormat(200, Result, 'List for HRJobLookupValue retrieved successfully.');
+
+[External] GetHRJobLookupValue(HRJobLookupValueID : Code[20]) Result : Text
+
+HRJobLookupValueTbl.RESET;
+HRJobLookupValueTbl.SETFILTER(Code, HRJobLookupValueID);
+
+IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+   Result := HRJobLookupValueSerializer(HRJobLookupValueTbl);
+   Result := ResponseFormat(200, Result, 'HRJobLookupValue was found.');
+END ELSE  BEGIN
+  Result :=  EmptyHRJobLookupValue();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateHRJobLookupValue(HRJobLookupValueID : Code[20];Option : Text;Description : Text;Blocked : Boolean;RequiredStage : Text) Result : Text
+
+HRJobLookupValueTbl.RESET;
+HRJobLookupValueTbl.SETFILTER(Code, HRJobLookupValueID);
+
+IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+ 
+  CASE TRUE OF 
+      LOWERCASE(Option) = 'qualification':
+          HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::Qualification;
+      LOWERCASE(Option) = 'requirement':
+          HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::Requirement;
+      LOWERCASE(Option) = 'responsibility':
+          HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::Responsibility;
+      LOWERCASE(Option) = 'job grade':
+          HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::"Job Grade";
+      LOWERCASE(Option) = 'checklist item':
+          HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::"Checklist Item";
+      LOWERCASE(Option) = 'other certifications':
+          HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::"Other Certifications";
+      LOWERCASE(Option) = 'job grade level':
+          HRJobLookupValueTbl.Option := HRJobLookupValueTbl.Option::"Job Grade Level";
+
+      END;
+ 
+  HRJobLookupValueTbl.Description := Description;
+
+  HRJobLookupValueTbl.Blocked := Blocked;
+
+  CASE TRUE OF 
+      LOWERCASE(RequiredStage) = ' ':
+          HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::" ";
+      LOWERCASE(RequiredStage) = 'employee creation':
+          HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::"Employee Creation";
+      LOWERCASE(RequiredStage) = 'interview approval':
+          HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::"Interview Approval";
+      LOWERCASE(RequiredStage) = 'training evaluation':
+          HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::"Training Evaluation";
+      LOWERCASE(RequiredStage) = 'employee requisition':
+          HRJobLookupValueTbl."Required Stage" := HRJobLookupValueTbl."Required Stage"::"Employee Requisition";
+      END;
+
+  HRJobLookupValueTbl.MODIFY;
+  Result := HRJobLookupValueSerializer(HRJobLookupValueTbl);
+  Result := ResponseFormat(200, Result, 'HRJobLookupValue was update successfully.');
+   
+END ELSE  BEGIN
+  Result :=  EmptyHRJobLookupValue();
+  Result := ResponseFormat(404, Result, 'HRJobLookupValue was not found.');
+
+END;
+
+[External] DeleteHRJobLookupValue(HRJobLookupValueID : Code[20]) Result : Text
+HRJobLookupValueTbl.RESET;
+
+HRJobLookupValueTbl.SETFILTER(Code, HRJobLookupValueID);
+
+IF HRJobLookupValueTbl.FINDFIRST THEN BEGIN
+   HRJobLookupValueTbl.DELETE;
+   Result := ResponseFormat(200, '', 'HRJobLookupValue was deleted successfully');
+
+END ELSE  BEGIN
+  Result :=  EmptyHRJobLookupValue();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+  END;
+
+LOCAL HRJobLookupValueSerializer(HRJobLookupValueTbl : Record "HR Job Lookup Value") Result : Text
+Result := '{'; 
+Result += '\"Option\":\"'+FORMAT(HRJobLookupValueTbl.Option)+'\",';
+Result += '\"Code\":\"'+FORMAT(HRJobLookupValueTbl.Code)+'\",';
+Result += '\"Description\":\"'+FORMAT(HRJobLookupValueTbl.Description)+'\",';
+Result += '\"Blocked\":'+JsonBoolean(HRJobLookupValueTbl.Blocked)+',';
+Result += '\"RequiredStage\":\"'+FORMAT(HRJobLookupValueTbl."Required Stage")+'\"';
+Result += '}'; 
+
+LOCAL EmptyHRJobLookupValue() Result : Text
+HRJobLookupValueTbl.INIT;
+HRJobLookupValueTbl.Code := 'N/A';
+Result:= HRJobLookupValueSerializer(HRJobLookupValueTbl);
+
+LOCAL ---------------------------- HR Job Grade Levels ----------------------------()
+
+[External] CreateHRJobGradeLevel(HRJobGradeID : Code[30];HRJobGradeLevelID : Code[30];BasicPayAmount : Decimal;BasicPayDifference : Decimal;AllowanceCode : Code[20];AllowanceDescription : Text;AllowanceAmount : Decimal;AllowanceSetup : Boolean;Sequenc
+HRJobGradeLevelTbl.INIT;
+
+HRJobLookupValueTbl.RESET;
+HRJobLookupValueTbl.SETFILTER(Option, 'Job Grade');
+HRJobLookupValueTbl.SETFILTER(Code, HRJobGradeID);
+IF HRJobLookupValueTbl.FINDFIRST THEN   BEGIN
+  HRJobGradeLevelTbl."Job Grade" := HRJobLookupValueTbl.Code;
+  END;
+
+HRJobLookupValueTbl.RESET;
+HRJobLookupValueTbl.SETFILTER(Option, 'Job Grade Level');
+HRJobLookupValueTbl.SETFILTER(Code, HRJobGradeLevelID);
+IF HRJobLookupValueTbl.FINDFIRST THEN   BEGIN
+  HRJobGradeLevelTbl."Job Grade Level" := HRJobLookupValueTbl.Code;
+  END;
+ 
+HRJobGradeLevelTbl."Basic Pay Amount" := BasicPayAmount;
+ 
+HRJobGradeLevelTbl."Basic Pay Difference" := BasicPayDifference;
+
+BaseUnitofMeasureTbl.RESET;
+BaseUnitofMeasureTbl.SETFILTER(Code, AllowanceCode );
+IF BaseUnitofMeasureTbl.FINDFIRST THEN BEGIN
+    HRJobGradeLevelTbl."Allowance Code" := BaseUnitofMeasureTbl.Code;
+END;
+
+HRJobGradeLevelTbl."Allowance Description" := AllowanceDescription;
+
+HRJobGradeLevelTbl."Allowance Amount" := AllowanceAmount;
+ 
+HRJobGradeLevelTbl."Allowance Setup" := AllowanceSetup;
+
+HRJobGradeLevelTbl.Sequence := Sequence;
+
+HRJobGradeLevelTbl.INSERT(TRUE);
+Result := HRJobGradeLevelSerializer(HRJobGradeLevelTbl);
+Result := ResponseFormat(200, Result, 'HRJobGradeLevel was created successfully');
+
+[External] GetHRJobGradeLevelRange() Result : Text
+Result := '[';
+
+HRJobGradeLevelTbl.RESET;
+REPEAT 
+    Result += HRJobGradeLevelSerializer(HRJobGradeLevelTbl);
+    Result += ',';
+UNTIL HRJobGradeLevelTbl.NEXT = 0;
+Result := COPYSTR(Result, 1, STRLEN(Result) - 1);
+Result += ']';
+Result := ResponseFormat(200, Result, 'List for HRJobGradeLevel retrieved successfully.');
+
+[External] GetHRJobGradeLevel(HRJobGradeID : Code[30];HRJobGradeLevelID : Code[30]) Result : Text
+HRJobGradeLevelTbl.RESET;
+HRJobGradeLevelTbl.SETFILTER("Job Grade", HRJobGradeID);
+HRJobGradeLevelTbl.SETFILTER("Job Grade Level", HRJobGradeLevelID);
+
+IF HRJobGradeLevelTbl.FINDFIRST THEN BEGIN
+   Result := HRJobGradeLevelSerializer(HRJobGradeLevelTbl);
+   Result := ResponseFormat(200, Result, 'HRJobGradeLevel was found.');
+END ELSE  BEGIN
+  Result :=  EmptyHRJobGradeLevel();  
+  Result := ResponseFormat(404, Result, 'Not found.');
+END;
+
+[External] UpdateHRJobGradeLevel(OldHRJobGradeID : Code[30];OldHRJobGradeLevelID : Code[30];HRJobGradeID : Code[30];HRJobGradeLevelID : Code[30];BasicPayAmount : Decimal;BasicPayDifference : Decimal;AllowanceCode : Code[20];AllowanceDescription : Text
+HRJobGradeLevelTbl.RESET;
+HRJobGradeLevelTbl.SETFILTER("Job Grade", OldHRJobGradeID);
+HRJobGradeLevelTbl.SETFILTER("Job Grade Level", OldHRJobGradeLevelID);
+
+IF HRJobGradeLevelTbl.FINDFIRST THEN BEGIN
+
+    HRJobLookupValueTbl.RESET;
+    HRJobLookupValueTbl.SETFILTER(Option, 'Job Grade');
+    HRJobLookupValueTbl.SETFILTER(Code, HRJobGradeID);
+    IF HRJobLookupValueTbl.FINDFIRST THEN   BEGIN
+      HRJobGradeLevelTbl."Job Grade" := HRJobLookupValueTbl.Code;
+      END;
+
+    HRJobLookupValueTbl.RESET;
+    HRJobLookupValueTbl.SETFILTER(Option, 'Job Grade Level');
+    HRJobLookupValueTbl.SETFILTER(Code, HRJobGradeLevelID);
+    IF HRJobLookupValueTbl.FINDFIRST THEN   BEGIN
+      HRJobGradeLevelTbl."Job Grade Level" := HRJobLookupValueTbl.Code;
+      END;
+ 
+    HRJobGradeLevelTbl."Basic Pay Amount" := BasicPayAmount;
+ 
+    HRJobGradeLevelTbl."Basic Pay Difference" := BasicPayDifference;
+
+    BaseUnitofMeasureTbl.RESET;
+    BaseUnitofMeasureTbl.SETFILTER(Code, AllowanceCode );
+    IF BaseUnitofMeasureTbl.FINDFIRST THEN BEGIN
+        HRJobGradeLevelTbl."Allowance Code" := BaseUnitofMeasureTbl.Code;
+    END;
+
+    HRJobGradeLevelTbl."Allowance Description" := AllowanceDescription;
+
+    HRJobGradeLevelTbl."Allowance Amount" := AllowanceAmount;
+ 
+    HRJobGradeLevelTbl."Allowance Setup" := AllowanceSetup;
+
+    HRJobGradeLevelTbl.Sequence := Sequence;
+
+
+    HRJobGradeLevelTbl.MODIFY;
+    Result := HRJobGradeLevelSerializer(HRJobGradeLevelTbl);
+    Result := ResponseFormat(200, Result, 'HRJobGradeLevel was update successfully.');
+   
+END ELSE  BEGIN
+  Result :=  EmptyHRJobGradeLevel();
+  Result := ResponseFormat(404, Result, 'HRJobGradeLevel was not found.');
+
+END;
+
+[External] DeleteHRJobGradeLevel(HRJobGradeID : Code[30];HRJobGradeLevelID : Code[30]) Result : Text
+HRJobGradeLevelTbl.RESET;
+HRJobGradeLevelTbl.SETFILTER("Job Grade", HRJobGradeID);
+HRJobGradeLevelTbl.SETFILTER("Job Grade Level", HRJobGradeLevelID);
+
+IF HRJobGradeLevelTbl.FINDFIRST THEN BEGIN
+   HRJobGradeLevelTbl.DELETE;
+   Result := ResponseFormat(200, '', 'HRJobGradeLevel was deleted successfully');
+END ELSE  BEGIN
+  Result :=  EmptyHRJobGradeLevel();
+  Result := ResponseFormat(404, Result, 'Not Found.');
+  END;
+
+LOCAL HRJobGradeLevelSerializer(HRJobGradeLevelTbl : Record "HR Job Grade Levels") Result : Text
+Result := '{'; 
+Result += '\"JobGrade\":\"'+FORMAT(HRJobGradeLevelTbl."Job Grade")+'\",';
+Result += '\"JobGradeLevel\":\"'+FORMAT(HRJobGradeLevelTbl."Job Grade Level")+'\",';
+Result += '\"BasicPayAmount\":'+FORMAT(HRJobGradeLevelTbl."Basic Pay Amount", 12, '<Sign><Integer><Decimals>')+',';
+Result += '\"BasicPayDifference\":'+FORMAT(HRJobGradeLevelTbl."Basic Pay Difference", 12, '<Sign><Integer><Decimals>')+',';
+Result += '\"AllowanceCode\":\"'+FORMAT(HRJobGradeLevelTbl."Allowance Code")+'\",';
+Result += '\"AllowanceDescription\":\"'+FORMAT(HRJobGradeLevelTbl."Allowance Description")+'\",';
+Result += '\"AllowanceAmount\":'+FORMAT(HRJobGradeLevelTbl."Allowance Amount")+',';
+Result += '\"AllowanceSetup\":'+JsonBoolean(HRJobGradeLevelTbl."Allowance Setup")+',';
+Result += '\"Sequence\":'+FORMAT(HRJobGradeLevelTbl.Sequence)+'';
+Result += '}'; 
+
+LOCAL EmptyHRJobGradeLevel() Result : Text
+HRJobGradeLevelTbl.INIT;
+
+HRJobGradeLevelTbl."Job Grade" := 'N/A';
+HRJobGradeLevelTbl."Job Grade Level" := 'N/A';
+
+Result:= HRJobGradeLevelSerializer(HRJobGradeLevelTbl);
